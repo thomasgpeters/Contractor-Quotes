@@ -8,6 +8,9 @@ project(ContractorQuotes
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Enable warnings for our own code
+add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-parameter)
+
 # Find Wt libraries
 find_package(wt REQUIRED COMPONENTS wt wthttp wtdbo wtdbosqlite3)
 
@@ -34,6 +37,17 @@ add_executable(contractor_quotes ${SOURCES})
 target_include_directories(contractor_quotes PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
+
+# Mark Wt and Boost includes as SYSTEM to suppress third-party warnings
+# (e.g. deprecated sprintf in Wt/WLogger.h)
+get_target_property(WT_INCLUDE_DIRS Wt::Wt INTERFACE_INCLUDE_DIRECTORIES)
+if(WT_INCLUDE_DIRS)
+    target_include_directories(contractor_quotes SYSTEM PRIVATE ${WT_INCLUDE_DIRS})
+endif()
+get_target_property(BOOST_INCLUDE_DIRS Boost::boost INTERFACE_INCLUDE_DIRECTORIES)
+if(BOOST_INCLUDE_DIRS)
+    target_include_directories(contractor_quotes SYSTEM PRIVATE ${BOOST_INCLUDE_DIRS})
+endif()
 
 # Link libraries
 target_link_libraries(contractor_quotes PRIVATE
