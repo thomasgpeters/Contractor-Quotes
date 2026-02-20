@@ -1,6 +1,10 @@
 #!/bin/bash
 # Start the Contractor Quotes & Sourcing application
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Load environment variables
+source "${SCRIPT_DIR}/env.sh"
+
 PORT="${QUOTES_HTTP_PORT:-8080}"
 
 echo "Starting Contractor Quotes on port ${PORT}..."
