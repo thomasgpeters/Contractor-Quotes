@@ -71,6 +71,7 @@ install(DIRECTORY resources/ DESTINATION share/contractor_quotes/resources)
 add_custom_target(run
     COMMAND contractor_quotes
         --docroot resources
+        --resources-dir resources
         --http-address 0.0.0.0
         --http-port ${QUOTES_HTTP_PORT}
     DEPENDS contractor_quotes
