@@ -1,0 +1,394 @@
+/* ===== Contractor Quotes & Sourcing Application Styles ===== */
+
+/* ----- Global Layout ----- */
+.app-root {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f5f7fa;
+    min-height: 100vh;
+}
+
+.main-navbar {
+    background-color: #1a2332 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    padding: 0.5rem 1rem;
+}
+
+.main-navbar .navbar-brand {
+    color: #ffffff !important;
+    font-weight: 700;
+    font-size: 1.3rem;
+    letter-spacing: 0.5px;
+}
+
+.main-menu .nav-link {
+    color: #b0bec5 !important;
+    font-weight: 500;
+    padding: 0.6rem 1rem !important;
+    transition: color 0.2s;
+}
+
+.main-menu .nav-link:hover {
+    color: #ffffff !important;
+}
+
+.main-menu .active > .nav-link {
+    color: #4fc3f7 !important;
+    border-bottom: 2px solid #4fc3f7;
+}
+
+.page-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem 2rem;
+}
+
+/* ----- Dashboard ----- */
+.dashboard-view h2 {
+    color: #1a2332;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.dashboard-subtitle {
+    color: #607d8b;
+    margin-bottom: 1.5rem;
+}
+
+.stats-cards {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    flex: 1 1 180px;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    min-width: 160px;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1a2332;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #78909c;
+    margin-top: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card-products  { border-top: 3px solid #42a5f5; }
+.card-suppliers { border-top: 3px solid #66bb6a; }
+.card-clients   { border-top: 3px solid #ab47bc; }
+.card-quotes    { border-top: 3px solid #ffa726; }
+.card-value     { border-top: 3px solid #26c6da; }
+
+/* ----- Tables ----- */
+.table {
+    background: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+}
+
+.table th {
+    background-color: #eceff1;
+    color: #37474f;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid #cfd8dc;
+}
+
+.table td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid #eceff1;
+    vertical-align: middle;
+    font-size: 0.9rem;
+    color: #37474f;
+}
+
+.table-striped tr:nth-child(even) td {
+    background-color: #fafbfc;
+}
+
+.table tr:hover td {
+    background-color: #e3f2fd;
+}
+
+/* ----- Buttons ----- */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    padding: 0.4rem 1rem;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background-color: #1976d2;
+    color: #ffffff;
+}
+
+.btn-primary:hover {
+    background-color: #1565c0;
+}
+
+.btn-secondary {
+    background-color: #78909c;
+    color: #ffffff;
+}
+
+.btn-secondary:hover {
+    background-color: #607d8b;
+}
+
+.btn-success {
+    background-color: #2e7d32;
+    color: #ffffff;
+}
+
+.btn-success:hover {
+    background-color: #1b5e20;
+}
+
+.btn-danger {
+    background-color: #c62828;
+    color: #ffffff;
+}
+
+.btn-danger:hover {
+    background-color: #b71c1c;
+}
+
+.btn-info {
+    background-color: #0277bd;
+    color: #ffffff;
+}
+
+.btn-info:hover {
+    background-color: #01579b;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.8rem;
+}
+
+/* ----- Toolbar ----- */
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+/* ----- Forms ----- */
+.form-control {
+    border: 1px solid #cfd8dc;
+    border-radius: 6px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.9rem;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    border-color: #42a5f5;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(66,165,245,0.15);
+}
+
+.inline-control {
+    display: inline-block;
+    width: auto;
+    min-width: 150px;
+}
+
+.spin-control {
+    width: 120px;
+}
+
+.form-group-box {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.form-group-box legend {
+    font-weight: 600;
+    color: #1a2332;
+    font-size: 1.05rem;
+    padding: 0 0.5rem;
+}
+
+.form-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.form-row label {
+    min-width: 110px;
+    font-weight: 500;
+    color: #546e7a;
+    font-size: 0.9rem;
+}
+
+.form-row .form-control {
+    flex: 1;
+}
+
+/* ----- Dialog ----- */
+.dialog-content {
+    padding: 1rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.Wt-dialog {
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+/* ----- Quote Builder ----- */
+.quote-editor {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 2px solid #e0e0e0;
+}
+
+.totals-box {
+    text-align: right;
+}
+
+.total-line {
+    font-size: 1rem;
+    color: #37474f;
+    display: block;
+    margin: 0.25rem 0;
+}
+
+.grand-total {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1a2332;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 2px solid #1a2332;
+}
+
+/* ----- Action Buttons ----- */
+.action-buttons {
+    display: flex;
+    gap: 0.4rem;
+}
+
+/* ----- Sourcing Highlights ----- */
+.best-source {
+    background-color: #e8f5e9 !important;
+    font-weight: 600;
+}
+
+.out-of-stock {
+    color: #c62828 !important;
+    background-color: #ffebee !important;
+}
+
+/* ----- Supplier Info ----- */
+.supplier-info {
+    background: #f5f7fa;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.supplier-info p {
+    margin: 0.25rem 0;
+    font-size: 0.9rem;
+}
+
+/* ----- Section Headers ----- */
+h2 {
+    color: #1a2332;
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+h3 {
+    color: #37474f;
+    font-weight: 600;
+    font-size: 1.15rem;
+    margin: 1.5rem 0 0.75rem;
+}
+
+p {
+    color: #546e7a;
+    font-size: 0.95rem;
+}
+
+.text-muted {
+    color: #90a4ae;
+    font-style: italic;
+}
+
+/* ----- Responsive ----- */
+@media (max-width: 768px) {
+    .page-content {
+        padding: 1rem;
+    }
+
+    .stats-cards {
+        flex-direction: column;
+    }
+
+    .stat-card {
+        min-width: 100%;
+    }
+
+    .form-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-row label {
+        min-width: auto;
+    }
+
+    .table {
+        font-size: 0.8rem;
+    }
+
+    .table th, .table td {
+        padding: 0.4rem 0.5rem;
+    }
+}
