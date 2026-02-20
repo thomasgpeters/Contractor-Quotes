@@ -110,3 +110,46 @@ A custom minimal YAML parser handles the configuration file (yaml-cpp was not av
 
 - Created `README.md` with architecture switching documentation, build instructions, and project structure
 - Created `docs/DOCUMENT_LOG.md` (this file)
+
+## Phase 6: Mobile Application (React + TypeScript + Capacitor)
+
+Added a hybrid mobile app in `/mobile` that connects to the same ApiLogicServer REST backend as the C++ Wt desktop app.
+
+### Technology Stack
+- **React 18** with functional components and hooks
+- **TypeScript** for type safety, with interfaces mirroring the C++ DTOs
+- **Vite** for fast development builds and production bundling
+- **Capacitor 6** for native iOS and Android packaging
+- **React Router 6** for client-side navigation
+
+### Architecture
+The mobile app operates in API mode only (no local database). It connects directly to ApiLogicServer using the same JSON:API format as the C++ `ApiDataProvider`. The API base URL is configurable at runtime via the Settings screen (stored in `localStorage`).
+
+### Screens
+- **Dashboard** - Summary cards (product/supplier/client/quote counts), category breakdown, recent quotes
+- **Clients** - Full CRUD: list, create, edit, delete with form validation
+- **Products** - Category-filtered list with drill-down to supplier pricing/availability
+- **Suppliers** - List with ratings/lead times, drill-down to product inventory
+- **Quote Builder** - Full quote lifecycle: create, edit status, add/remove line items, delete
+- **Settings** - Configure API server URL, app info
+
+### Files Created
+- `mobile/package.json` - Project manifest with React, Capacitor, and Vite dependencies
+- `mobile/tsconfig.json` - TypeScript compiler configuration
+- `mobile/vite.config.ts` - Vite build configuration
+- `mobile/capacitor.config.ts` - Capacitor native app configuration
+- `mobile/index.html` - SPA entry point with mobile viewport meta tags
+- `mobile/.gitignore` - Excludes node_modules, dist, ios/, android/
+- `mobile/src/main.tsx` - React app bootstrap
+- `mobile/src/App.tsx` - Route definitions
+- `mobile/src/App.css` - Mobile-first responsive styles with safe area support
+- `mobile/src/vite-env.d.ts` - Vite type declarations
+- `mobile/src/types/models.ts` - TypeScript interfaces matching C++ DTOs
+- `mobile/src/services/api.ts` - JSON:API client for ApiLogicServer
+- `mobile/src/components/Layout.tsx` - Tab bar navigation shell
+- `mobile/src/pages/Dashboard.tsx` - Dashboard screen
+- `mobile/src/pages/Clients.tsx` - Client management with CRUD
+- `mobile/src/pages/Products.tsx` - Product catalog with category filters
+- `mobile/src/pages/Suppliers.tsx` - Supplier directory
+- `mobile/src/pages/QuoteBuilder.tsx` - Quote builder with line items
+- `mobile/src/pages/Settings.tsx` - API configuration

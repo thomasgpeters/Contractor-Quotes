@@ -147,6 +147,15 @@ Contractor-Quotes/
 │   ├── schema_pg.sql            # PostgreSQL DDL
 │   ├── seed_data.sql            # SQLite seed data
 │   └── seed_data_pg.sql         # PostgreSQL seed data
+├── mobile/                      # React + Capacitor mobile app
+│   ├── src/
+│   │   ├── types/models.ts      # TypeScript interfaces (mirrors C++ DTOs)
+│   │   ├── services/api.ts      # JSON:API client for ApiLogicServer
+│   │   ├── pages/               # Dashboard, Clients, Products, Suppliers, QuoteBuilder, Settings
+│   │   └── components/          # Layout (tab bar navigation)
+│   ├── capacitor.config.ts      # iOS/Android native config
+│   ├── vite.config.ts           # Vite build config
+│   └── package.json
 ├── resources/                   # Static web resources (CSS, Bootstrap 5)
 ├── tests/
 │   └── test_sourcing_engine.cpp # Boost.Test unit tests
@@ -164,11 +173,59 @@ Six tables: `product`, `supplier`, `supplier_product`, `client`, `quote`, `quote
 
 Schema files for both SQLite and PostgreSQL are in the `database/` directory.
 
+## Mobile App
+
+A hybrid mobile app in `mobile/` built with React, TypeScript, and Capacitor. It connects to the same ApiLogicServer REST backend.
+
+### Quick Start
+
+```bash
+cd mobile
+npm install
+npm run dev          # Vite dev server at http://localhost:3000
+```
+
+### Build for Production
+
+```bash
+npm run build        # Outputs to mobile/dist/
+```
+
+### Native Builds (iOS/Android)
+
+```bash
+npx cap add ios      # First time only
+npx cap add android  # First time only
+npm run build && npx cap sync
+npx cap open ios     # Opens Xcode
+npx cap open android # Opens Android Studio
+```
+
+The API server URL defaults to `http://localhost:5667/api` and can be changed in the app's Settings screen.
+
+### Mobile Screens
+
+- **Dashboard** - Summary statistics with quick navigation
+- **Clients** - Full CRUD management
+- **Products** - Browse by category, view supplier pricing
+- **Suppliers** - Ratings, lead times, inventory drill-down
+- **Quote Builder** - Create quotes, manage line items
+- **Settings** - Configure API endpoint
+
 ## Technology Stack
 
+### Desktop (C++ / Wt)
 - **C++17** with Wt (Witty) web framework
 - **Wt::Dbo** ORM for local database mode
 - **Boost.Asio** for synchronous HTTP client (API mode)
 - **Wt::Json** for JSON parsing and serialization
 - **Bootstrap 5** for responsive UI styling
+
+### Mobile (React / Capacitor)
+- **React 18** with TypeScript
+- **Vite** for development and production builds
+- **Capacitor 6** for native iOS and Android
+- **React Router 6** for navigation
+
+### Backend
 - **ApiLogicServer** (optional) for REST API backend
