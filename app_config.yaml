@@ -1,0 +1,18 @@
+# Contractor Quotes & Sourcing – Application Configuration
+#
+# When running against ApiLogicServer for persistent data,
+# set the api_base_url to the ApiLogicServer endpoint.
+# The Wt front-end will issue REST calls to this URL
+# instead of connecting directly to SQLite.
+
+api_logic_server:
+  api_base_url: "http://localhost:5656/api"
+  # Alternative ports if 5656 is in use:
+  #   api_base_url: "http://localhost:5663/api"
+
+  # Optional: timeout for HTTP requests to the API (seconds)
+  request_timeout: 30
+
+  # Optional: API key header if ApiLogicServer requires auth
+  # api_key_header: "Authorization"
+  # api_key_value: "Bearer <token>"
