@@ -1,30 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
-project(ContractorQuotes
-    VERSION 1.0.0
-    DESCRIPTION "Contractor Quote & Product Sourcing Application"
-    LANGUAGES CXX
-)
+project(ContractorQuotes VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Enable warnings for our own code
-add_compile_options(-Wall -Wextra -Wno-unused-parameter)
-
-# Suppress warnings originating from Wt framework headers that we cannot fix:
-#  - WLogger.h:379 uses std::sprintf (deprecated on macOS)
-#  - Session_impl.h:378 has destructor naming Clang flags with -Wdtor-name
-# On macOS, Clang ignores -isystem for /usr/local/include (a default search
-# path), so SYSTEM includes alone do not silence these.
+# Suppress deprecation warnings from Wt internal headers (e.g., sprintf in WLogger.h)
 add_compile_options(-Wno-deprecated-declarations)
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
-    add_compile_options(-Wno-dtor-name)
-endif()
 
-# Find Wt libraries
-find_package(wt REQUIRED COMPONENTS wt wthttp wtdbo wtdbosqlite3)
-
-# Find Boost (required by Wt)
+# Find dependencies
+find_package(Wt REQUIRED COMPONENTS Wt HTTP Dbo DboSqlite3)
 find_package(Boost REQUIRED COMPONENTS system filesystem thread)
 
 # Source files
@@ -43,23 +27,12 @@ set(SOURCES
 # Build executable
 add_executable(contractor_quotes ${SOURCES})
 
-# Include directories
 target_include_directories(contractor_quotes PRIVATE
     ${CMAKE_SOURCE_DIR}/include
+    ${Wt_INCLUDE_DIRS}
 )
 
-# Mark Wt and Boost includes as SYSTEM where supported (helps on Linux/GCC)
-get_target_property(WT_INCLUDE_DIRS Wt::Wt INTERFACE_INCLUDE_DIRECTORIES)
-if(WT_INCLUDE_DIRS)
-    target_include_directories(contractor_quotes SYSTEM PRIVATE ${WT_INCLUDE_DIRS})
-endif()
-get_target_property(BOOST_INCLUDE_DIRS Boost::boost INTERFACE_INCLUDE_DIRECTORIES)
-if(BOOST_INCLUDE_DIRS)
-    target_include_directories(contractor_quotes SYSTEM PRIVATE ${BOOST_INCLUDE_DIRS})
-endif()
-
-# Link libraries
-target_link_libraries(contractor_quotes PRIVATE
+target_link_libraries(contractor_quotes
     Wt::Wt
     Wt::HTTP
     Wt::Dbo
@@ -69,9 +42,34 @@ target_link_libraries(contractor_quotes PRIVATE
     Boost::thread
 )
 
-# Copy CSS resources to build directory
-file(COPY ${CMAKE_SOURCE_DIR}/resources/css DESTINATION ${CMAKE_BINARY_DIR})
+# Configure HTTP port
+set(QUOTES_HTTP_PORT 8080 CACHE STRING "HTTP port for Contractor Quotes")
 
-# Install target
-install(TARGETS contractor_quotes DESTINATION bin)
+# Copy resources to build directory
+file(COPY ${CMAKE_SOURCE_DIR}/resources DESTINATION ${CMAKE_BINARY_DIR})
+
+# Copy start script to build directory
+file(COPY ${CMAKE_SOURCE_DIR}/scripts/start.sh DESTINATION ${CMAKE_BINARY_DIR}
+     FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                      GROUP_READ GROUP_EXECUTE
+                      WORLD_READ WORLD_EXECUTE)
+
+# Install targets
+install(TARGETS contractor_quotes RUNTIME DESTINATION bin)
 install(DIRECTORY resources/ DESTINATION share/contractor_quotes/resources)
+
+# Custom target to run
+add_custom_target(run
+    COMMAND contractor_quotes
+        --docroot resources
+        --http-address 0.0.0.0
+        --http-port ${QUOTES_HTTP_PORT}
+    DEPENDS contractor_quotes
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
+# Testing
+option(BUILD_TESTS "Build the test suite" ON)
+if(BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
