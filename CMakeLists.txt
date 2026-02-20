@@ -45,8 +45,13 @@ target_link_libraries(contractor_quotes
 # Configure HTTP port
 set(QUOTES_HTTP_PORT 8080 CACHE STRING "HTTP port for Contractor Quotes")
 
-# Copy resources to build directory
-file(COPY ${CMAKE_SOURCE_DIR}/resources DESTINATION ${CMAKE_BINARY_DIR})
+# Sync resources to build directory on every build
+add_custom_target(copy_resources ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/resources ${CMAKE_BINARY_DIR}/resources
+    COMMENT "Copying resources to build directory"
+)
+add_dependencies(contractor_quotes copy_resources)
 
 # Copy start and env scripts to build directory
 file(COPY ${CMAKE_SOURCE_DIR}/scripts/start.sh DESTINATION ${CMAKE_BINARY_DIR}
@@ -66,6 +71,7 @@ install(DIRECTORY resources/ DESTINATION share/contractor_quotes/resources)
 add_custom_target(run
     COMMAND contractor_quotes
         --docroot resources
+        --resources-dir resources
         --http-address 0.0.0.0
         --http-port ${QUOTES_HTTP_PORT}
     DEPENDS contractor_quotes
