@@ -48,8 +48,12 @@ set(QUOTES_HTTP_PORT 8080 CACHE STRING "HTTP port for Contractor Quotes")
 # Copy resources to build directory
 file(COPY ${CMAKE_SOURCE_DIR}/resources DESTINATION ${CMAKE_BINARY_DIR})
 
-# Copy start script to build directory
+# Copy start and env scripts to build directory
 file(COPY ${CMAKE_SOURCE_DIR}/scripts/start.sh DESTINATION ${CMAKE_BINARY_DIR}
+     FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                      GROUP_READ GROUP_EXECUTE
+                      WORLD_READ WORLD_EXECUTE)
+file(COPY ${CMAKE_SOURCE_DIR}/scripts/env.sh DESTINATION ${CMAKE_BINARY_DIR}
      FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
                       GROUP_READ GROUP_EXECUTE
                       WORLD_READ WORLD_EXECUTE)
