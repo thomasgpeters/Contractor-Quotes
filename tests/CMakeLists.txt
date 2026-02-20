@@ -6,6 +6,7 @@ find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 add_executable(test_sourcing_engine
     test_sourcing_engine.cpp
     ${CMAKE_SOURCE_DIR}/src/models/Session.cpp
+    ${CMAKE_SOURCE_DIR}/src/data/LocalDataProvider.cpp
     ${CMAKE_SOURCE_DIR}/src/engine/SourcingEngine.cpp
 )
 

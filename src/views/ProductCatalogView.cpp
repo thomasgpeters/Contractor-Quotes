@@ -1,8 +1,5 @@
 #include "views/ProductCatalogView.h"
-#include "models/Session.h"
-#include "models/Product.h"
-#include "models/Supplier.h"
-#include "models/SupplierProduct.h"
+#include "data/DataProvider.h"
 #include "engine/SourcingEngine.h"
 #include <Wt/WText.h>
 #include <Wt/WPushButton.h>
@@ -11,9 +8,10 @@
 #include <Wt/WLabel.h>
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
 
-ProductCatalogView::ProductCatalogView(Session& session)
-    : session_(session)
+ProductCatalogView::ProductCatalogView(DataProvider& provider)
+    : provider_(provider)
 {
     addStyleClass("product-catalog-view");
     buildUI();
@@ -25,7 +23,6 @@ void ProductCatalogView::buildUI()
     addWidget(std::make_unique<Wt::WText>(
         "<p>Browse building materials and compare supplier pricing.</p>"));
 
-    // Filters toolbar
     auto toolbar = addWidget(std::make_unique<Wt::WContainerWidget>());
     toolbar->addStyleClass("toolbar");
 
@@ -34,17 +31,9 @@ void ProductCatalogView::buildUI()
     categoryFilter_->addStyleClass("form-control inline-control");
     categoryFilter_->addItem("All Categories");
 
-    {
-        Wt::Dbo::Transaction t(session_.dbo());
-        using CatRow = std::tuple<std::string>;
-        auto cats = session_.dbo().query<CatRow>(
-            "select distinct category from product order by category"
-        ).resultList();
-        for (auto& [cat] : cats) {
-            categoryFilter_->addItem(cat);
-        }
-        t.commit();
-    }
+    auto cats = provider_.getDistinctCategories();
+    for (auto& cat : cats)
+        categoryFilter_->addItem(cat);
 
     categoryFilter_->changed().connect(this, &ProductCatalogView::refreshTable);
 
@@ -74,55 +63,39 @@ void ProductCatalogView::refreshTable()
     table_->elementAt(0, 6)->addWidget(std::make_unique<Wt::WText>("Price Range"));
     table_->elementAt(0, 7)->addWidget(std::make_unique<Wt::WText>("Actions"));
 
-    Wt::Dbo::Transaction t(session_.dbo());
-
     std::string catFilter = categoryFilter_->currentText().toUTF8();
     std::string searchText = searchBox_->text().toUTF8();
 
-    auto query = session_.dbo().find<Product>().orderBy("category, name");
-
-    // We'll filter in code since Wt Dbo doesn't support dynamic where clauses elegantly
-    auto products = query.resultList();
+    auto products = provider_.findAllProducts();
 
     int row = 1;
     for (auto& p : products) {
-        // Apply category filter
-        if (catFilter != "All Categories" && p->category != catFilter)
+        if (catFilter != "All Categories" && p.category != catFilter)
             continue;
 
-        // Apply search filter
         if (!searchText.empty()) {
-            std::string lowerName = p->name;
+            std::string lowerName = p.name;
             std::string lowerSearch = searchText;
             std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
             std::transform(lowerSearch.begin(), lowerSearch.end(), lowerSearch.begin(), ::tolower);
             if (lowerName.find(lowerSearch) == std::string::npos &&
-                p->sku.find(searchText) == std::string::npos)
+                p.sku.find(searchText) == std::string::npos)
                 continue;
         }
 
-        table_->elementAt(row, 0)->addWidget(std::make_unique<Wt::WText>(p->sku));
-        table_->elementAt(row, 1)->addWidget(std::make_unique<Wt::WText>(p->name));
-        table_->elementAt(row, 2)->addWidget(std::make_unique<Wt::WText>(p->category));
-        table_->elementAt(row, 3)->addWidget(std::make_unique<Wt::WText>(p->unit));
-        table_->elementAt(row, 4)->addWidget(std::make_unique<Wt::WText>(p->specifications));
-
-        // Count sources and price range
-        int sourceCount = 0;
-        double minPrice = 1e9, maxPrice = 0;
-        for (const auto& sp : p->supplierProducts) {
-            ++sourceCount;
-            if (sp->unitPrice < minPrice) minPrice = sp->unitPrice;
-            if (sp->unitPrice > maxPrice) maxPrice = sp->unitPrice;
-        }
+        table_->elementAt(row, 0)->addWidget(std::make_unique<Wt::WText>(p.sku));
+        table_->elementAt(row, 1)->addWidget(std::make_unique<Wt::WText>(p.name));
+        table_->elementAt(row, 2)->addWidget(std::make_unique<Wt::WText>(p.category));
+        table_->elementAt(row, 3)->addWidget(std::make_unique<Wt::WText>(p.unit));
+        table_->elementAt(row, 4)->addWidget(std::make_unique<Wt::WText>(p.specifications));
 
         table_->elementAt(row, 5)->addWidget(
-            std::make_unique<Wt::WText>(std::to_string(sourceCount)));
+            std::make_unique<Wt::WText>(std::to_string(p.supplierCount)));
 
-        if (sourceCount > 0) {
+        if (p.supplierCount > 0) {
             std::ostringstream priceRange;
-            priceRange << "$" << std::fixed << std::setprecision(2) << minPrice
-                       << " - $" << maxPrice;
+            priceRange << "$" << std::fixed << std::setprecision(2) << p.minPrice
+                       << " - $" << p.maxPrice;
             table_->elementAt(row, 6)->addWidget(
                 std::make_unique<Wt::WText>(priceRange.str()));
         } else {
@@ -130,7 +103,7 @@ void ProductCatalogView::refreshTable()
                 std::make_unique<Wt::WText>("N/A"));
         }
 
-        long long pid = p.id();
+        long long pid = p.id;
         auto compareBtn = table_->elementAt(row, 7)->addWidget(
             std::make_unique<Wt::WPushButton>("Compare Sources"));
         compareBtn->addStyleClass("btn btn-sm btn-info");
@@ -138,16 +111,11 @@ void ProductCatalogView::refreshTable()
 
         ++row;
     }
-
-    t.commit();
 }
 
 void ProductCatalogView::showSupplierComparison(long long productId)
 {
-    Wt::Dbo::Transaction t(session_.dbo());
-
-    auto product = session_.dbo().find<Product>()
-        .where("id = ?").bind(productId).resultValue();
+    auto product = provider_.findProductById(productId);
     if (!product) return;
 
     auto dialog = addChild(std::make_unique<Wt::WDialog>(
@@ -163,8 +131,7 @@ void ProductCatalogView::showSupplierComparison(long long productId)
         " | <strong>Unit:</strong> " + product->unit +
         " | <strong>Specs:</strong> " + product->specifications + "</p>"));
 
-    // Run sourcing engine with Austin, TX as default job site
-    SourcingEngine engine(session_.dbo());
+    SourcingEngine engine(provider_);
     auto results = engine.findBestSources(productId, 10, 30.267, -97.743);
 
     if (results.empty()) {
@@ -186,11 +153,11 @@ void ProductCatalogView::showSupplierComparison(long long productId)
         table->elementAt(0, 8)->addWidget(std::make_unique<Wt::WText>("Lead Time"));
         table->elementAt(0, 9)->addWidget(std::make_unique<Wt::WText>("Score"));
 
-        int row = 1;
+        int srow = 1;
         for (auto& r : results) {
-            table->elementAt(row, 0)->addWidget(
-                std::make_unique<Wt::WText>(std::to_string(row)));
-            table->elementAt(row, 1)->addWidget(
+            table->elementAt(srow, 0)->addWidget(
+                std::make_unique<Wt::WText>(std::to_string(srow)));
+            table->elementAt(srow, 1)->addWidget(
                 std::make_unique<Wt::WText>(r.supplierName));
 
             std::ostringstream up, ep, dist, score;
@@ -199,29 +166,26 @@ void ProductCatalogView::showSupplierComparison(long long productId)
             dist << std::fixed << std::setprecision(1) << r.distanceMiles << " mi";
             score << std::fixed << std::setprecision(3) << r.compositeScore;
 
-            table->elementAt(row, 2)->addWidget(std::make_unique<Wt::WText>(up.str()));
-            table->elementAt(row, 3)->addWidget(std::make_unique<Wt::WText>(ep.str()));
-            table->elementAt(row, 4)->addWidget(
+            table->elementAt(srow, 2)->addWidget(std::make_unique<Wt::WText>(up.str()));
+            table->elementAt(srow, 3)->addWidget(std::make_unique<Wt::WText>(ep.str()));
+            table->elementAt(srow, 4)->addWidget(
                 std::make_unique<Wt::WText>(r.inStock ? "Yes" : "No"));
-            table->elementAt(row, 5)->addWidget(
+            table->elementAt(srow, 5)->addWidget(
                 std::make_unique<Wt::WText>(std::to_string(r.availableQty)));
-            table->elementAt(row, 6)->addWidget(std::make_unique<Wt::WText>(dist.str()));
+            table->elementAt(srow, 6)->addWidget(std::make_unique<Wt::WText>(dist.str()));
 
             std::ostringstream rat;
             rat << std::fixed << std::setprecision(1) << r.supplierRating << "/5";
-            table->elementAt(row, 7)->addWidget(std::make_unique<Wt::WText>(rat.str()));
-            table->elementAt(row, 8)->addWidget(
+            table->elementAt(srow, 7)->addWidget(std::make_unique<Wt::WText>(rat.str()));
+            table->elementAt(srow, 8)->addWidget(
                 std::make_unique<Wt::WText>(std::to_string(r.leadTimeDays) + " days"));
-            table->elementAt(row, 9)->addWidget(std::make_unique<Wt::WText>(score.str()));
+            table->elementAt(srow, 9)->addWidget(std::make_unique<Wt::WText>(score.str()));
 
-            // Highlight best source
-            if (row == 1) {
-                for (int col = 0; col < 10; ++col) {
-                    table->elementAt(row, col)->addStyleClass("best-source");
-                }
+            if (srow == 1) {
+                for (int col = 0; col < 10; ++col)
+                    table->elementAt(srow, col)->addStyleClass("best-source");
             }
-
-            ++row;
+            ++srow;
         }
     }
 
@@ -230,6 +194,5 @@ void ProductCatalogView::showSupplierComparison(long long productId)
     closeBtn->addStyleClass("btn btn-secondary");
     closeBtn->clicked().connect(dialog, &Wt::WDialog::reject);
 
-    t.commit();
     dialog->show();
 }

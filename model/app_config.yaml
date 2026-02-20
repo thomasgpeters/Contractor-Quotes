@@ -1,0 +1,29 @@
+# Contractor Quotes & Sourcing – Application Configuration
+#
+# architecture: controls how the app persists data
+#   "api"   – REST calls to an ApiLogicServer instance (default)
+#   "local" – direct database connection (SQLite or PostgreSQL)
+
+architecture: api
+
+# ── Local database settings (used when architecture: local) ────
+local:
+  database: sqlite                        # sqlite | postgres
+  sqlite_path: "contractor_quotes.db"     # file path for SQLite
+  postgres:
+    host: "localhost"
+    port: 5432
+    database: "contractor_quotes"
+    user: "postgres"
+    password: ""
+
+# ── ApiLogicServer settings (used when architecture: api) ──────
+api_logic_server:
+  api_base_url: "http://localhost:5667/api"
+
+  # Timeout for HTTP requests to the API (seconds)
+  request_timeout: 30
+
+  # Optional authentication header
+  # api_key_header: "Authorization"
+  # api_key_value: "Bearer <token>"

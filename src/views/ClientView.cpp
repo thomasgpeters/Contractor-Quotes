@@ -1,8 +1,5 @@
 #include "views/ClientView.h"
-#include "models/Session.h"
-#include "models/Client.h"
-#include "models/Quote.h"
-#include "models/QuoteLineItem.h"
+#include "data/DataProvider.h"
 #include <Wt/WText.h>
 #include <Wt/WLineEdit.h>
 #include <Wt/WPushButton.h>
@@ -12,8 +9,8 @@
 #include <Wt/WMessageBox.h>
 #include <Wt/WLabel.h>
 
-ClientView::ClientView(Session& session)
-    : session_(session)
+ClientView::ClientView(DataProvider& provider)
+    : provider_(provider)
 {
     addStyleClass("client-view");
     buildUI();
@@ -50,27 +47,24 @@ void ClientView::refreshTable()
     table_->elementAt(0, 6)->addWidget(std::make_unique<Wt::WText>("Quotes"));
     table_->elementAt(0, 7)->addWidget(std::make_unique<Wt::WText>("Actions"));
 
-    Wt::Dbo::Transaction t(session_.dbo());
-    auto clients = session_.dbo().find<Client>().orderBy("name").resultList();
+    auto clients = provider_.findAllClients();
 
     int row = 1;
     for (auto& c : clients) {
-        table_->elementAt(row, 0)->addWidget(std::make_unique<Wt::WText>(c->name));
-        table_->elementAt(row, 1)->addWidget(std::make_unique<Wt::WText>(c->company));
-        table_->elementAt(row, 2)->addWidget(std::make_unique<Wt::WText>(c->city));
-        table_->elementAt(row, 3)->addWidget(std::make_unique<Wt::WText>(c->state));
-        table_->elementAt(row, 4)->addWidget(std::make_unique<Wt::WText>(c->phone));
-        table_->elementAt(row, 5)->addWidget(std::make_unique<Wt::WText>(c->email));
-
-        int quoteCount = static_cast<int>(c->quotes.size());
+        table_->elementAt(row, 0)->addWidget(std::make_unique<Wt::WText>(c.name));
+        table_->elementAt(row, 1)->addWidget(std::make_unique<Wt::WText>(c.company));
+        table_->elementAt(row, 2)->addWidget(std::make_unique<Wt::WText>(c.city));
+        table_->elementAt(row, 3)->addWidget(std::make_unique<Wt::WText>(c.state));
+        table_->elementAt(row, 4)->addWidget(std::make_unique<Wt::WText>(c.phone));
+        table_->elementAt(row, 5)->addWidget(std::make_unique<Wt::WText>(c.email));
         table_->elementAt(row, 6)->addWidget(
-            std::make_unique<Wt::WText>(std::to_string(quoteCount)));
+            std::make_unique<Wt::WText>(std::to_string(c.quoteCount)));
 
         auto actionsDiv = table_->elementAt(row, 7)->addWidget(
             std::make_unique<Wt::WContainerWidget>());
         actionsDiv->addStyleClass("action-buttons");
 
-        long long cid = c.id();
+        long long cid = c.id;
 
         auto editBtn = actionsDiv->addWidget(std::make_unique<Wt::WPushButton>("Edit"));
         editBtn->addStyleClass("btn btn-sm btn-secondary");
@@ -82,7 +76,6 @@ void ClientView::refreshTable()
 
         ++row;
     }
-    t.commit();
 }
 
 void ClientView::showAddDialog()
@@ -117,17 +110,16 @@ void ClientView::showAddDialog()
     cancelBtn->addStyleClass("btn btn-secondary");
 
     saveBtn->clicked().connect([=] {
-        Wt::Dbo::Transaction t(session_.dbo());
-        auto c = session_.dbo().addNew<Client>();
-        c.modify()->name    = nameEdit->text().toUTF8();
-        c.modify()->company = companyEdit->text().toUTF8();
-        c.modify()->address = addressEdit->text().toUTF8();
-        c.modify()->city    = cityEdit->text().toUTF8();
-        c.modify()->state   = stateEdit->text().toUTF8();
-        c.modify()->zipCode = zipEdit->text().toUTF8();
-        c.modify()->phone   = phoneEdit->text().toUTF8();
-        c.modify()->email   = emailEdit->text().toUTF8();
-        t.commit();
+        ClientDTO dto;
+        dto.name    = nameEdit->text().toUTF8();
+        dto.company = companyEdit->text().toUTF8();
+        dto.address = addressEdit->text().toUTF8();
+        dto.city    = cityEdit->text().toUTF8();
+        dto.state   = stateEdit->text().toUTF8();
+        dto.zipCode = zipEdit->text().toUTF8();
+        dto.phone   = phoneEdit->text().toUTF8();
+        dto.email   = emailEdit->text().toUTF8();
+        provider_.createClient(dto);
 
         dialog->accept();
         refreshTable();
@@ -139,8 +131,7 @@ void ClientView::showAddDialog()
 
 void ClientView::showEditDialog(long long clientId)
 {
-    Wt::Dbo::Transaction t(session_.dbo());
-    auto client = session_.dbo().find<Client>().where("id = ?").bind(clientId).resultValue();
+    auto client = provider_.findClientById(clientId);
     if (!client) return;
 
     auto dialog = addChild(std::make_unique<Wt::WDialog>("Edit Client"));
@@ -158,15 +149,14 @@ void ClientView::showEditDialog(long long clientId)
         return edit;
     };
 
-    auto nameEdit    = addField("Name",    client->name);
-    auto companyEdit = addField("Company", client->company);
-    auto addressEdit = addField("Address", client->address);
-    auto cityEdit    = addField("City",    client->city);
-    auto stateEdit   = addField("State",   client->state);
-    auto zipEdit     = addField("Zip Code",client->zipCode);
-    auto phoneEdit   = addField("Phone",   client->phone);
-    auto emailEdit   = addField("Email",   client->email);
-    t.commit();
+    auto nameEdit    = addField("Name",     client->name);
+    auto companyEdit = addField("Company",  client->company);
+    auto addressEdit = addField("Address",  client->address);
+    auto cityEdit    = addField("City",     client->city);
+    auto stateEdit   = addField("State",    client->state);
+    auto zipEdit     = addField("Zip Code", client->zipCode);
+    auto phoneEdit   = addField("Phone",    client->phone);
+    auto emailEdit   = addField("Email",    client->email);
 
     auto footer = dialog->footer();
     auto saveBtn = footer->addWidget(std::make_unique<Wt::WPushButton>("Save"));
@@ -175,17 +165,16 @@ void ClientView::showEditDialog(long long clientId)
     cancelBtn->addStyleClass("btn btn-secondary");
 
     saveBtn->clicked().connect([=] {
-        Wt::Dbo::Transaction t2(session_.dbo());
-        auto c = session_.dbo().find<Client>().where("id = ?").bind(clientId).resultValue();
-        c.modify()->name    = nameEdit->text().toUTF8();
-        c.modify()->company = companyEdit->text().toUTF8();
-        c.modify()->address = addressEdit->text().toUTF8();
-        c.modify()->city    = cityEdit->text().toUTF8();
-        c.modify()->state   = stateEdit->text().toUTF8();
-        c.modify()->zipCode = zipEdit->text().toUTF8();
-        c.modify()->phone   = phoneEdit->text().toUTF8();
-        c.modify()->email   = emailEdit->text().toUTF8();
-        t2.commit();
+        ClientDTO dto;
+        dto.name    = nameEdit->text().toUTF8();
+        dto.company = companyEdit->text().toUTF8();
+        dto.address = addressEdit->text().toUTF8();
+        dto.city    = cityEdit->text().toUTF8();
+        dto.state   = stateEdit->text().toUTF8();
+        dto.zipCode = zipEdit->text().toUTF8();
+        dto.phone   = phoneEdit->text().toUTF8();
+        dto.email   = emailEdit->text().toUTF8();
+        provider_.updateClient(clientId, dto);
 
         dialog->accept();
         refreshTable();
@@ -206,21 +195,7 @@ void ClientView::deleteClient(long long clientId)
 
     msgBox->buttonClicked().connect([=] {
         if (msgBox->buttonResult() == Wt::StandardButton::Yes) {
-            Wt::Dbo::Transaction t(session_.dbo());
-            // Delete line items for all quotes belonging to this client
-            session_.dbo().execute(
-                "DELETE FROM quote_line_item WHERE quote_id IN "
-                "(SELECT id FROM quote WHERE client_id = ?)"
-            ).bind(clientId);
-            // Delete quotes belonging to this client
-            session_.dbo().execute(
-                "DELETE FROM quote WHERE client_id = ?"
-            ).bind(clientId);
-            // Delete client
-            session_.dbo().execute(
-                "DELETE FROM client WHERE id = ?"
-            ).bind(clientId);
-            t.commit();
+            provider_.deleteClient(clientId);
             refreshTable();
         }
         removeChild(msgBox);

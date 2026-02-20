@@ -5,15 +5,15 @@
 #include <Wt/WComboBox.h>
 #include <Wt/WLineEdit.h>
 
-class Session;
+class DataProvider;
 
 /// Product catalog view – browse products, filter by category, view suppliers.
 class ProductCatalogView : public Wt::WContainerWidget {
 public:
-    ProductCatalogView(Session& session);
+    ProductCatalogView(DataProvider& provider);
 
 private:
-    Session& session_;
+    DataProvider& provider_;
 
     Wt::WComboBox* categoryFilter_ = nullptr;
     Wt::WLineEdit* searchBox_      = nullptr;

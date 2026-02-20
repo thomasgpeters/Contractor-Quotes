@@ -6,15 +6,15 @@
 #include <Wt/WPushButton.h>
 #include <Wt/WDialog.h>
 
-class Session;
+class DataProvider;
 
 /// Client management view – list, add, edit, and remove clients.
 class ClientView : public Wt::WContainerWidget {
 public:
-    ClientView(Session& session);
+    ClientView(DataProvider& provider);
 
 private:
-    Session& session_;
+    DataProvider& provider_;
 
     Wt::WTable* table_ = nullptr;
 

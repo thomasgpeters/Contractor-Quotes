@@ -2,6 +2,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "engine/SourcingEngine.h"
+#include "data/LocalDataProvider.h"
 #include "models/Session.h"
 #include "models/Product.h"
 #include "models/Supplier.h"
@@ -12,8 +13,9 @@
 
 struct DatabaseFixture {
     Session session;
+    LocalDataProvider provider;
 
-    DatabaseFixture() : session(":memory:") {
+    DatabaseFixture() : session(":memory:"), provider(session) {
         session.seedIfEmpty();
     }
 };
@@ -40,7 +42,7 @@ BOOST_AUTO_TEST_CASE(find_best_sources_returns_results)
     auto product = session.dbo().find<Product>().where("sku = ?").bind("LBR-2408").resultValue();
     BOOST_REQUIRE(product);
 
-    SourcingEngine engine(session.dbo());
+    SourcingEngine engine(provider);
     auto results = engine.findBestSources(product.id(), 10, 30.267, -97.743);
 
     BOOST_CHECK(!results.empty());
@@ -54,7 +56,7 @@ BOOST_AUTO_TEST_CASE(results_are_sorted_by_composite_score)
     auto product = session.dbo().find<Product>().where("sku = ?").bind("LBR-2408").resultValue();
     BOOST_REQUIRE(product);
 
-    SourcingEngine engine(session.dbo());
+    SourcingEngine engine(provider);
     auto results = engine.findBestSources(product.id(), 10, 30.267, -97.743);
 
     // Verify suppliers meeting qty come first, then sorted by score
@@ -82,7 +84,7 @@ BOOST_AUTO_TEST_CASE(best_source_has_lowest_composite_score)
     auto product = session.dbo().find<Product>().where("sku = ?").bind("CON-80NM").resultValue();
     BOOST_REQUIRE(product);
 
-    SourcingEngine engine(session.dbo());
+    SourcingEngine engine(provider);
     auto results = engine.findBestSources(product.id(), 5, 29.760, -95.370);
 
     if (results.size() >= 2 && results[0].meetsQty && results[1].meetsQty) {
@@ -98,7 +100,7 @@ BOOST_AUTO_TEST_CASE(custom_weights_change_ranking)
     auto product = session.dbo().find<Product>().where("sku = ?").bind("LBR-2408").resultValue();
     BOOST_REQUIRE(product);
 
-    SourcingEngine engine(session.dbo());
+    SourcingEngine engine(provider);
 
     // Price-heavy weighting
     SourcingWeights priceWeights{0.80, 0.10, 0.05, 0.05};
@@ -131,13 +133,10 @@ BOOST_AUTO_TEST_CASE(custom_weights_change_ranking)
 
 BOOST_AUTO_TEST_CASE(nonexistent_product_returns_empty)
 {
-    Wt::Dbo::Transaction t(session.dbo());
-
-    SourcingEngine engine(session.dbo());
+    SourcingEngine engine(provider);
     auto results = engine.findBestSources(99999, 10, 30.267, -97.743);
 
     BOOST_CHECK(results.empty());
-    t.commit();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

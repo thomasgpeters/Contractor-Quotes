@@ -1,0 +1,590 @@
+about:
+  date: February 20, 2026 15:14:42
+  recent_changes: works with modified safrs-react-admin
+  version: 0.0.0
+api_root: '{http_type}://{swagger_host}:{port}/{api}'
+application:
+  app:
+    description: generated Ontimize application
+    menu_group:
+      data:
+        icon: edit_square
+        menu_item:
+          Client:
+            icon: edit_square
+            menu_name: Client
+            menu_title: Client
+            page:
+              detail:
+                columns: name,version,company,address,city,state,zip_code,phone,email,latitude,longitude,id
+                include_children: true
+                page_name: detail
+                template_name: detail_template.html
+                title: Client
+                typescript_name: detail_component.jinja
+                visible_columns: name,version,company,address,city,state,zip_code,phone,email,latitude,longitude,id
+              home:
+                columns: name,version,company,address,city,state,zip_code,phone,email,latitude,longitude,id
+                include_children: true
+                page_name: home
+                template_name: home_template.html
+                title: Client
+                typescript_name: home_template.jinja
+                visible_columns: name,version,company,address,city,state,zip_code,phone,email,latitude,longitude,id
+              new:
+                columns: name,version,company,address,city,state,zip_code,phone,email,latitude,longitude,id
+                include_children: true
+                page_name: new
+                template_name: new_template.html
+                title: Client
+                typescript_name: new_component.jinja
+                visible_columns: name,version,company,address,city,state,zip_code,phone,email,latitude,longitude,id
+            template_name: module.jinja
+          Product:
+            icon: edit_square
+            menu_name: Product
+            menu_title: Product
+            page:
+              detail:
+                columns: name,version,category,unit,specifications,sku,id
+                include_children: true
+                page_name: detail
+                template_name: detail_template.html
+                title: Product
+                typescript_name: detail_component.jinja
+                visible_columns: name,version,category,unit,specifications,sku,id
+              home:
+                columns: name,version,category,unit,specifications,sku,id
+                include_children: true
+                page_name: home
+                template_name: home_template.html
+                title: Product
+                typescript_name: home_template.jinja
+                visible_columns: name,version,category,unit,specifications,sku,id
+              new:
+                columns: name,version,category,unit,specifications,sku,id
+                include_children: true
+                page_name: new
+                template_name: new_template.html
+                title: Product
+                typescript_name: new_component.jinja
+                visible_columns: name,version,category,unit,specifications,sku,id
+            template_name: module.jinja
+          Quote:
+            icon: edit_square
+            menu_name: Quote
+            menu_title: Quote
+            page:
+              detail:
+                columns: description,client_id,version,title,created_date,expiry_date,status,tax_rate,markup_rate,notes,id
+                include_children: true
+                page_name: detail
+                template_name: detail_template.html
+                title: Quote
+                typescript_name: detail_component.jinja
+                visible_columns: description,client_id,version,title,created_date,expiry_date,status,tax_rate,markup_rate,notes,id
+              home:
+                columns: description,client_id,version,title,created_date,expiry_date,status,tax_rate,markup_rate,notes,id
+                include_children: true
+                page_name: home
+                template_name: home_template.html
+                title: Quote
+                typescript_name: home_template.jinja
+                visible_columns: description,client_id,version,title,created_date,expiry_date,status,tax_rate,markup_rate,notes,id
+              new:
+                columns: description,client_id,version,title,created_date,expiry_date,status,tax_rate,markup_rate,notes,id
+                include_children: true
+                page_name: new
+                template_name: new_template.html
+                title: Quote
+                typescript_name: new_component.jinja
+                visible_columns: description,client_id,version,title,created_date,expiry_date,status,tax_rate,markup_rate,notes,id
+            template_name: module.jinja
+          QuoteLineItem:
+            icon: edit_square
+            menu_name: QuoteLineItem
+            menu_title: QuoteLineItem
+            page:
+              detail:
+                columns: id,product_id,quote_id,supplier_id,version,quantity,unit_price,markup,line_total,notes
+                include_children: true
+                page_name: detail
+                template_name: detail_template.html
+                title: QuoteLineItem
+                typescript_name: detail_component.jinja
+                visible_columns: id,product_id,quote_id,supplier_id,version,quantity,unit_price,markup,line_total,notes
+              home:
+                columns: id,product_id,quote_id,supplier_id,version,quantity,unit_price,markup,line_total,notes
+                include_children: true
+                page_name: home
+                template_name: home_template.html
+                title: QuoteLineItem
+                typescript_name: home_template.jinja
+                visible_columns: id,product_id,quote_id,supplier_id,version,quantity,unit_price,markup,line_total,notes
+              new:
+                columns: id,product_id,quote_id,supplier_id,version,quantity,unit_price,markup,line_total,notes
+                include_children: true
+                page_name: new
+                template_name: new_template.html
+                title: QuoteLineItem
+                typescript_name: new_component.jinja
+                visible_columns: id,product_id,quote_id,supplier_id,version,quantity,unit_price,markup,line_total,notes
+            template_name: module.jinja
+          Supplier:
+            icon: edit_square
+            menu_name: Supplier
+            menu_title: Supplier
+            page:
+              detail:
+                columns: name,version,address,city,state,zip_code,phone,email,website,latitude,longitude,rating,lead_time_days,id
+                include_children: true
+                page_name: detail
+                template_name: detail_template.html
+                title: Supplier
+                typescript_name: detail_component.jinja
+                visible_columns: name,version,address,city,state,zip_code,phone,email,website,latitude,longitude,rating,lead_time_days,id
+              home:
+                columns: name,version,address,city,state,zip_code,phone,email,website,latitude,longitude,rating,lead_time_days,id
+                include_children: true
+                page_name: home
+                template_name: home_template.html
+                title: Supplier
+                typescript_name: home_template.jinja
+                visible_columns: name,version,address,city,state,zip_code,phone,email,website,latitude,longitude,rating,lead_time_days,id
+              new:
+                columns: name,version,address,city,state,zip_code,phone,email,website,latitude,longitude,rating,lead_time_days,id
+                include_children: true
+                page_name: new
+                template_name: new_template.html
+                title: Supplier
+                typescript_name: new_component.jinja
+                visible_columns: name,version,address,city,state,zip_code,phone,email,website,latitude,longitude,rating,lead_time_days,id
+            template_name: module.jinja
+          SupplierProduct:
+            icon: edit_square
+            menu_name: SupplierProduct
+            menu_title: SupplierProduct
+            page:
+              detail:
+                columns: id,product_id,supplier_id,version,unit_price,stock_qty,in_stock,can_backorder,min_order_qty,bulk_discount,bulk_threshold,last_updated
+                include_children: true
+                page_name: detail
+                template_name: detail_template.html
+                title: SupplierProduct
+                typescript_name: detail_component.jinja
+                visible_columns: id,product_id,supplier_id,version,unit_price,stock_qty,in_stock,can_backorder,min_order_qty,bulk_discount,bulk_threshold,last_updated
+              home:
+                columns: id,product_id,supplier_id,version,unit_price,stock_qty,in_stock,can_backorder,min_order_qty,bulk_discount,bulk_threshold,last_updated
+                include_children: true
+                page_name: home
+                template_name: home_template.html
+                title: SupplierProduct
+                typescript_name: home_template.jinja
+                visible_columns: id,product_id,supplier_id,version,unit_price,stock_qty,in_stock,can_backorder,min_order_qty,bulk_discount,bulk_threshold,last_updated
+              new:
+                columns: id,product_id,supplier_id,version,unit_price,stock_qty,in_stock,can_backorder,min_order_qty,bulk_discount,bulk_threshold,last_updated
+                include_children: true
+                page_name: new
+                template_name: new_template.html
+                title: SupplierProduct
+                typescript_name: new_component.jinja
+                visible_columns: id,product_id,supplier_id,version,unit_price,stock_qty,in_stock,can_backorder,min_order_qty,bulk_discount,bulk_threshold,last_updated
+            template_name: module.jinja
+        menu_name: data
+        menu_title: data
+        opened: true
+    name: app
+authentication: '{system-default}'
+entities:
+  Client:
+    columns:
+    - label: ' name*'
+      name: name
+      required: true
+      search: true
+      sort: true
+      template: text
+      type: VARCHAR
+    - default: '1'
+      name: version
+      required: true
+      template: integer
+      type: INTEGER
+    - name: company
+      template: text
+      type: VARCHAR
+    - name: address
+      template: text
+      type: VARCHAR
+    - name: city
+      template: text
+      type: VARCHAR
+    - name: state
+      template: text
+      type: VARCHAR
+    - name: zip_code
+      template: text
+      type: VARCHAR
+    - name: phone
+      template: text
+      type: VARCHAR
+    - name: email
+      template: text
+      type: VARCHAR
+    - default: '0.0'
+      name: latitude
+      template: real
+      type: DOUBLE
+    - default: '0.0'
+      name: longitude
+      template: real
+      type: DOUBLE
+    - name: id
+      template: integer
+      type: INTEGER
+    favorite: name
+    hidden: {}
+    label: Client
+    primary_key:
+    - id
+    tab_groups:
+    - direction: tomany
+      fks:
+      - client_id
+      name: QuoteList
+      resource: Quote
+    type: Client
+  Product:
+    columns:
+    - label: ' name*'
+      name: name
+      required: true
+      search: true
+      sort: true
+      template: text
+      type: VARCHAR
+    - default: '1'
+      name: version
+      required: true
+      template: integer
+      type: INTEGER
+    - name: category
+      required: true
+      template: text
+      type: VARCHAR
+    - name: unit
+      required: true
+      template: text
+      type: VARCHAR
+    - name: specifications
+      template: text
+      type: TEXT
+    - name: sku
+      template: text
+      type: VARCHAR
+    - name: id
+      template: integer
+      type: INTEGER
+    favorite: name
+    hidden: {}
+    label: Product
+    primary_key:
+    - id
+    tab_groups:
+    - direction: tomany
+      fks:
+      - product_id
+      name: QuoteLineItemList
+      resource: QuoteLineItem
+    - direction: tomany
+      fks:
+      - product_id
+      name: SupplierProductList
+      resource: SupplierProduct
+    type: Product
+  Quote:
+    columns:
+    - label: ' description*'
+      name: description
+      search: true
+      sort: true
+      template: text
+      type: TEXT
+    - name: client_id
+      template: integer
+      type: INTEGER
+    - default: '1'
+      name: version
+      required: true
+      template: integer
+      type: INTEGER
+    - name: title
+      template: text
+      type: VARCHAR
+    - name: created_date
+      type: DATETIME
+    - name: expiry_date
+      type: DATETIME
+    - default: '0'
+      name: status
+      template: integer
+      type: INTEGER
+    - default: '0.0'
+      name: tax_rate
+      template: real
+      type: DOUBLE
+    - default: '0.0'
+      name: markup_rate
+      template: real
+      type: DOUBLE
+    - name: notes
+      template: text
+      type: TEXT
+    - name: id
+      template: integer
+      type: INTEGER
+    favorite: description
+    hidden: {}
+    label: Quote
+    primary_key:
+    - id
+    tab_groups:
+    - direction: tomany
+      fks:
+      - quote_id
+      name: QuoteLineItemList
+      resource: QuoteLineItem
+    - direction: toone
+      fks:
+      - client_id
+      name: client
+      resource: Client
+    type: Quote
+  QuoteLineItem:
+    columns:
+    - label: ' id*'
+      name: id
+      search: true
+      sort: true
+      template: integer
+      type: INTEGER
+    - name: product_id
+      template: integer
+      type: INTEGER
+    - name: quote_id
+      template: integer
+      type: INTEGER
+    - name: supplier_id
+      template: integer
+      type: INTEGER
+    - default: '1'
+      name: version
+      required: true
+      template: integer
+      type: INTEGER
+    - default: '0'
+      name: quantity
+      template: integer
+      type: INTEGER
+    - default: '0.0'
+      name: unit_price
+      template: real
+      type: DOUBLE
+    - default: '0.0'
+      name: markup
+      template: real
+      type: DOUBLE
+    - default: '0.0'
+      name: line_total
+      template: real
+      type: DOUBLE
+    - name: notes
+      template: text
+      type: TEXT
+    favorite: id
+    hidden: {}
+    label: QuoteLineItem
+    primary_key:
+    - id
+    tab_groups:
+    - direction: toone
+      fks:
+      - product_id
+      name: product
+      resource: Product
+    - direction: toone
+      fks:
+      - quote_id
+      name: quote
+      resource: Quote
+    - direction: toone
+      fks:
+      - supplier_id
+      name: supplier
+      resource: Supplier
+    type: QuoteLineItem
+  Supplier:
+    columns:
+    - label: ' name*'
+      name: name
+      required: true
+      search: true
+      sort: true
+      template: text
+      type: VARCHAR
+    - default: '1'
+      name: version
+      required: true
+      template: integer
+      type: INTEGER
+    - name: address
+      template: text
+      type: VARCHAR
+    - name: city
+      template: text
+      type: VARCHAR
+    - name: state
+      template: text
+      type: VARCHAR
+    - name: zip_code
+      template: text
+      type: VARCHAR
+    - name: phone
+      template: text
+      type: VARCHAR
+    - name: email
+      template: text
+      type: VARCHAR
+    - name: website
+      template: text
+      type: VARCHAR
+    - default: '0.0'
+      name: latitude
+      template: real
+      type: DOUBLE
+    - default: '0.0'
+      name: longitude
+      template: real
+      type: DOUBLE
+    - default: '0.0'
+      name: rating
+      template: real
+      type: DOUBLE
+    - default: '0'
+      name: lead_time_days
+      template: integer
+      type: INTEGER
+    - name: id
+      template: integer
+      type: INTEGER
+    favorite: name
+    hidden: {}
+    label: Supplier
+    primary_key:
+    - id
+    tab_groups:
+    - direction: tomany
+      fks:
+      - supplier_id
+      name: QuoteLineItemList
+      resource: QuoteLineItem
+    - direction: tomany
+      fks:
+      - supplier_id
+      name: SupplierProductList
+      resource: SupplierProduct
+    type: Supplier
+  SupplierProduct:
+    columns:
+    - label: ' id*'
+      name: id
+      search: true
+      sort: true
+      template: integer
+      type: INTEGER
+    - name: product_id
+      required: true
+      template: integer
+      type: INTEGER
+    - name: supplier_id
+      required: true
+      template: integer
+      type: INTEGER
+    - default: '1'
+      name: version
+      required: true
+      template: integer
+      type: INTEGER
+    - default: '0.0'
+      name: unit_price
+      template: real
+      type: DOUBLE
+    - default: '0'
+      name: stock_qty
+      template: integer
+      type: INTEGER
+    - name: in_stock
+      type: Boolean
+    - name: can_backorder
+      type: Boolean
+    - default: '1'
+      name: min_order_qty
+      template: integer
+      type: INTEGER
+    - default: '0.0'
+      name: bulk_discount
+      template: real
+      type: DOUBLE
+    - default: '0'
+      name: bulk_threshold
+      template: integer
+      type: INTEGER
+    - name: last_updated
+      type: DATETIME
+    favorite: id
+    hidden: {}
+    label: SupplierProduct
+    primary_key:
+    - id
+    tab_groups:
+    - direction: toone
+      fks:
+      - product_id
+      name: product
+      resource: Product
+    - direction: toone
+      fks:
+      - supplier_id
+      name: supplier
+      resource: Supplier
+    type: SupplierProduct
+settings:
+  HomeJS: /admin-app/home.js
+  max_list_columns: 8
+  style_guide:
+    api_endpoint: http://localhost:5656/api
+    applicationLocales:
+    - en
+    - es
+    currency_symbol: $
+    currency_symbol_position: left
+    date_format: YYYY-MM-DD
+    decimal_max: '1000000000'
+    decimal_min: '0'
+    decimal_separator: .
+    edit_on_mode: dblclick
+    exclude_listpicker: false
+    include_translation: false
+    keycloak_client_id: alsclient
+    keycloak_realm: kcals
+    keycloak_url: http://localhost:8080
+    locale: en
+    max_decimal_digits: '4'
+    min_decimal_digits: '2'
+    mode: tab
+    pick_style: list
+    serviceType: JSONAPI
+    startSessionPath: /auth/login
+    style: light
+    thousand_separator: ','
+    use_keycloak: false

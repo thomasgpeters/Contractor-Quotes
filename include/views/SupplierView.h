@@ -3,15 +3,15 @@
 #include <Wt/WContainerWidget.h>
 #include <Wt/WTable.h>
 
-class Session;
+class DataProvider;
 
 /// Supplier directory view – list all suppliers and their details.
 class SupplierView : public Wt::WContainerWidget {
 public:
-    SupplierView(Session& session);
+    SupplierView(DataProvider& provider);
 
 private:
-    Session& session_;
+    DataProvider& provider_;
 
     Wt::WTable* table_ = nullptr;
 

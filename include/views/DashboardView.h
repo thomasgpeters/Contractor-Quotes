@@ -1,17 +1,16 @@
 #pragma once
 
 #include <Wt/WContainerWidget.h>
-#include <Wt/Dbo/Session.h>
 
-class Session;
+class DataProvider;
 
 /// Dashboard showing summary statistics and recent activity.
 class DashboardView : public Wt::WContainerWidget {
 public:
-    DashboardView(Session& session);
+    DashboardView(DataProvider& provider);
 
 private:
-    Session& session_;
+    DataProvider& provider_;
 
     void buildUI();
 };
