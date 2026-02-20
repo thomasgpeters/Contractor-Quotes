@@ -9,7 +9,17 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Enable warnings for our own code
-add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-parameter)
+add_compile_options(-Wall -Wextra -Wno-unused-parameter)
+
+# Suppress warnings originating from Wt framework headers that we cannot fix:
+#  - WLogger.h:379 uses std::sprintf (deprecated on macOS)
+#  - Session_impl.h:378 has destructor naming Clang flags with -Wdtor-name
+# On macOS, Clang ignores -isystem for /usr/local/include (a default search
+# path), so SYSTEM includes alone do not silence these.
+add_compile_options(-Wno-deprecated-declarations)
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
+    add_compile_options(-Wno-dtor-name)
+endif()
 
 # Find Wt libraries
 find_package(wt REQUIRED COMPONENTS wt wthttp wtdbo wtdbosqlite3)
@@ -38,8 +48,7 @@ target_include_directories(contractor_quotes PRIVATE
     ${CMAKE_SOURCE_DIR}/include
 )
 
-# Mark Wt and Boost includes as SYSTEM to suppress third-party warnings
-# (e.g. deprecated sprintf in Wt/WLogger.h)
+# Mark Wt and Boost includes as SYSTEM where supported (helps on Linux/GCC)
 get_target_property(WT_INCLUDE_DIRS Wt::Wt INTERFACE_INCLUDE_DIRECTORIES)
 if(WT_INCLUDE_DIRS)
     target_include_directories(contractor_quotes SYSTEM PRIVATE ${WT_INCLUDE_DIRS})
