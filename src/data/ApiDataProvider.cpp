@@ -10,6 +10,8 @@
 #include <stdexcept>
 #include <regex>
 #include <algorithm>
+#include <chrono>
+#include <ctime>
 #include <set>
 #include <map>
 
@@ -293,6 +295,14 @@ static std::string buildJsonBody(const std::string& type,
     return Wt::Json::serialize(root);
 }
 
+// Forward declarations for static parse helpers (needed by enrichment methods)
+static ProductDTO          parseProduct(const Wt::Json::Object& item);
+static SupplierDTO         parseSupplier(const Wt::Json::Object& item);
+static SupplierProductDTO  parseSupplierProduct(const Wt::Json::Object& item);
+static ClientDTO           parseClient(const Wt::Json::Object& item);
+static QuoteDTO            parseQuote(const Wt::Json::Object& item);
+static QuoteLineItemDTO    parseLineItem(const Wt::Json::Object& item);
+
 // ── Products ─────────────────────────────────────────────────
 
 static ProductDTO parseProduct(const Wt::Json::Object& item) {
@@ -315,6 +325,7 @@ std::vector<ProductDTO> ApiDataProvider::findAllProducts()
     std::vector<ProductDTO> result;
     for (const auto& v : arr)
         result.push_back(parseProduct(static_cast<const Wt::Json::Object&>(v)));
+    enrichProducts(result);
     return result;
 }
 
@@ -324,7 +335,10 @@ std::optional<ProductDTO> ApiDataProvider::findProductById(long long id)
         auto json = httpGet("/Product/" + std::to_string(id) + "/");
         auto obj  = getDataObject(json);
         if (obj.empty()) return std::nullopt;
-        return parseProduct(obj);
+        auto dto = parseProduct(obj);
+        std::vector<ProductDTO> v{dto};
+        enrichProducts(v);
+        return v[0];
     } catch (...) {
         return std::nullopt;
     }
@@ -368,6 +382,7 @@ std::vector<SupplierDTO> ApiDataProvider::findAllSuppliers()
     std::vector<SupplierDTO> result;
     for (const auto& v : arr)
         result.push_back(parseSupplier(static_cast<const Wt::Json::Object&>(v)));
+    enrichSuppliers(result);
     return result;
 }
 
@@ -377,7 +392,10 @@ std::optional<SupplierDTO> ApiDataProvider::findSupplierById(long long id)
         auto json = httpGet("/Supplier/" + std::to_string(id) + "/");
         auto obj  = getDataObject(json);
         if (obj.empty()) return std::nullopt;
-        return parseSupplier(obj);
+        auto dto = parseSupplier(obj);
+        std::vector<SupplierDTO> v{dto};
+        enrichSuppliers(v);
+        return v[0];
     } catch (...) {
         return std::nullopt;
     }
@@ -411,6 +429,7 @@ std::vector<SupplierProductDTO> ApiDataProvider::findSupplierProductsByProductId
     std::vector<SupplierProductDTO> result;
     for (const auto& v : arr)
         result.push_back(parseSupplierProduct(static_cast<const Wt::Json::Object&>(v)));
+    enrichSupplierProducts(result);
     return result;
 }
 
@@ -423,6 +442,7 @@ std::vector<SupplierProductDTO> ApiDataProvider::findSupplierProductsBySupplierI
     std::vector<SupplierProductDTO> result;
     for (const auto& v : arr)
         result.push_back(parseSupplierProduct(static_cast<const Wt::Json::Object&>(v)));
+    enrichSupplierProducts(result);
     return result;
 }
 
@@ -468,6 +488,7 @@ std::vector<ClientDTO> ApiDataProvider::findAllClients()
     std::vector<ClientDTO> result;
     for (const auto& v : arr)
         result.push_back(parseClient(static_cast<const Wt::Json::Object&>(v)));
+    enrichClients(result);
     return result;
 }
 
@@ -477,7 +498,10 @@ std::optional<ClientDTO> ApiDataProvider::findClientById(long long id)
         auto json = httpGet("/Client/" + std::to_string(id) + "/");
         auto obj  = getDataObject(json);
         if (obj.empty()) return std::nullopt;
-        return parseClient(obj);
+        auto dto = parseClient(obj);
+        std::vector<ClientDTO> v{dto};
+        enrichClients(v);
+        return v[0];
     } catch (...) {
         return std::nullopt;
     }
@@ -540,6 +564,184 @@ static Wt::Json::Object quoteToAttributes(const QuoteDTO& dto) {
     return attr;
 }
 
+// ── Enrichment helpers (raw HTTP to avoid cascading enrichment) ──
+
+void ApiDataProvider::enrichProducts(std::vector<ProductDTO>& products)
+{
+    if (products.empty()) return;
+
+    auto json = httpGet("/SupplierProduct/?page[limit]=5000");
+    auto arr  = getDataArray(json);
+
+    std::map<long long, std::vector<double>> pricesByProduct;
+    for (const auto& v : arr) {
+        auto sp = parseSupplierProduct(static_cast<const Wt::Json::Object&>(v));
+        pricesByProduct[sp.productId].push_back(sp.unitPrice);
+    }
+
+    for (auto& p : products) {
+        auto it = pricesByProduct.find(p.id);
+        if (it != pricesByProduct.end()) {
+            p.supplierCount = static_cast<int>(it->second.size());
+            p.minPrice = *std::min_element(it->second.begin(), it->second.end());
+            p.maxPrice = *std::max_element(it->second.begin(), it->second.end());
+        }
+    }
+}
+
+void ApiDataProvider::enrichSuppliers(std::vector<SupplierDTO>& suppliers)
+{
+    if (suppliers.empty()) return;
+
+    auto json = httpGet("/SupplierProduct/?page[limit]=5000");
+    auto arr  = getDataArray(json);
+
+    std::map<long long, int> countBySupplier;
+    for (const auto& v : arr) {
+        auto sp = parseSupplierProduct(static_cast<const Wt::Json::Object&>(v));
+        countBySupplier[sp.supplierId]++;
+    }
+
+    for (auto& s : suppliers) {
+        auto it = countBySupplier.find(s.id);
+        if (it != countBySupplier.end())
+            s.productCount = it->second;
+    }
+}
+
+void ApiDataProvider::enrichClients(std::vector<ClientDTO>& clients)
+{
+    if (clients.empty()) return;
+
+    auto json = httpGet("/Quote/?page[limit]=5000");
+    auto arr  = getDataArray(json);
+
+    std::map<long long, int> countByClient;
+    for (const auto& v : arr) {
+        auto q = parseQuote(static_cast<const Wt::Json::Object&>(v));
+        if (q.clientId > 0)
+            countByClient[q.clientId]++;
+    }
+
+    for (auto& c : clients) {
+        auto it = countByClient.find(c.id);
+        if (it != countByClient.end())
+            c.quoteCount = it->second;
+    }
+}
+
+void ApiDataProvider::enrichSupplierProducts(std::vector<SupplierProductDTO>& sps)
+{
+    if (sps.empty()) return;
+
+    // Fetch raw products
+    auto pJson = httpGet("/Product/?page[limit]=5000");
+    auto pArr  = getDataArray(pJson);
+    std::map<long long, ProductDTO> prodMap;
+    for (const auto& v : pArr) {
+        auto p = parseProduct(static_cast<const Wt::Json::Object&>(v));
+        prodMap[p.id] = p;
+    }
+
+    // Fetch raw suppliers
+    auto sJson = httpGet("/Supplier/?page[limit]=5000");
+    auto sArr  = getDataArray(sJson);
+    std::map<long long, SupplierDTO> suppMap;
+    for (const auto& v : sArr) {
+        auto s = parseSupplier(static_cast<const Wt::Json::Object&>(v));
+        suppMap[s.id] = s;
+    }
+
+    for (auto& sp : sps) {
+        auto pit = prodMap.find(sp.productId);
+        if (pit != prodMap.end()) {
+            sp.productName     = pit->second.name;
+            sp.productSku      = pit->second.sku;
+            sp.productCategory = pit->second.category;
+        }
+        auto sit = suppMap.find(sp.supplierId);
+        if (sit != suppMap.end()) {
+            sp.supplierName     = sit->second.name;
+            sp.supplierRating   = sit->second.rating;
+            sp.supplierLeadDays = sit->second.leadTimeDays;
+            sp.supplierLat      = sit->second.latitude;
+            sp.supplierLon      = sit->second.longitude;
+        }
+    }
+}
+
+void ApiDataProvider::enrichQuotes(std::vector<QuoteDTO>& quotes)
+{
+    if (quotes.empty()) return;
+
+    // Batch-resolve client names (raw fetch, no cascade)
+    auto cJson = httpGet("/Client/?page[limit]=5000");
+    auto cArr  = getDataArray(cJson);
+    std::map<long long, std::string> clientNames;
+    for (const auto& v : cArr) {
+        auto c = parseClient(static_cast<const Wt::Json::Object&>(v));
+        clientNames[c.id] = c.name;
+    }
+
+    // Fetch ALL line items at once (avoids N+1 per quote)
+    auto liJson = httpGet("/QuoteLineItem/?page[limit]=5000");
+    auto liArr  = getDataArray(liJson);
+    std::map<long long, std::pair<int, double>> quoteLineTotals;
+    for (const auto& v : liArr) {
+        auto li = parseLineItem(static_cast<const Wt::Json::Object&>(v));
+        auto& [count, total] = quoteLineTotals[li.quoteId];
+        ++count;
+        total += li.lineTotal;
+    }
+
+    for (auto& q : quotes) {
+        if (q.clientId > 0) {
+            auto it = clientNames.find(q.clientId);
+            if (it != clientNames.end())
+                q.clientName = it->second;
+        }
+        auto it = quoteLineTotals.find(q.id);
+        if (it != quoteLineTotals.end()) {
+            q.lineItemCount = it->second.first;
+            q.totalAmount   = it->second.second;
+        }
+    }
+}
+
+void ApiDataProvider::enrichLineItems(std::vector<QuoteLineItemDTO>& items)
+{
+    if (items.empty()) return;
+
+    // Fetch raw products
+    auto pJson = httpGet("/Product/?page[limit]=5000");
+    auto pArr  = getDataArray(pJson);
+    std::map<long long, ProductDTO> prodMap;
+    for (const auto& v : pArr) {
+        auto p = parseProduct(static_cast<const Wt::Json::Object&>(v));
+        prodMap[p.id] = p;
+    }
+
+    // Fetch raw suppliers
+    auto sJson = httpGet("/Supplier/?page[limit]=5000");
+    auto sArr  = getDataArray(sJson);
+    std::map<long long, std::string> suppNames;
+    for (const auto& v : sArr) {
+        auto s = parseSupplier(static_cast<const Wt::Json::Object&>(v));
+        suppNames[s.id] = s.name;
+    }
+
+    for (auto& li : items) {
+        auto pit = prodMap.find(li.productId);
+        if (pit != prodMap.end()) {
+            li.productName = pit->second.name;
+            li.productUnit = pit->second.unit;
+        }
+        auto sit = suppNames.find(li.supplierId);
+        if (sit != suppNames.end())
+            li.supplierName = sit->second;
+    }
+}
+
 std::vector<QuoteDTO> ApiDataProvider::findAllQuotes()
 {
     auto json = httpGet("/Quote/?page[limit]=1000&sort=-created_date");
@@ -548,6 +750,7 @@ std::vector<QuoteDTO> ApiDataProvider::findAllQuotes()
     std::vector<QuoteDTO> result;
     for (const auto& v : arr)
         result.push_back(parseQuote(static_cast<const Wt::Json::Object&>(v)));
+    enrichQuotes(result);
     return result;
 }
 
@@ -557,7 +760,12 @@ std::optional<QuoteDTO> ApiDataProvider::findQuoteById(long long id)
         auto json = httpGet("/Quote/" + std::to_string(id) + "/");
         auto obj  = getDataObject(json);
         if (obj.empty()) return std::nullopt;
-        return parseQuote(obj);
+        auto dto = parseQuote(obj);
+
+        // Enrich single quote
+        std::vector<QuoteDTO> v{dto};
+        enrichQuotes(v);
+        return v[0];
     } catch (...) {
         return std::nullopt;
     }
@@ -572,12 +780,24 @@ std::vector<QuoteDTO> ApiDataProvider::findRecentQuotes(int limit)
     std::vector<QuoteDTO> result;
     for (const auto& v : arr)
         result.push_back(parseQuote(static_cast<const Wt::Json::Object&>(v)));
+    enrichQuotes(result);
     return result;
 }
 
 QuoteDTO ApiDataProvider::createQuote(const QuoteDTO& dto)
 {
-    auto body = buildJsonBody("Quote", quoteToAttributes(dto));
+    QuoteDTO toCreate = dto;
+    if (toCreate.createdDate.empty()) {
+        // Ensure created_date is set for new quotes
+        auto now = std::chrono::system_clock::now();
+        auto tt  = std::chrono::system_clock::to_time_t(now);
+        std::tm tm{};
+        gmtime_r(&tt, &tm);
+        char buf[32];
+        std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", &tm);
+        toCreate.createdDate = buf;
+    }
+    auto body = buildJsonBody("Quote", quoteToAttributes(toCreate));
     auto json = httpPost("/Quote/", body);
     auto obj  = getDataObject(json);
     return parseQuote(obj);
@@ -642,6 +862,7 @@ std::vector<QuoteLineItemDTO> ApiDataProvider::findLineItemsByQuoteId(long long 
     std::vector<QuoteLineItemDTO> result;
     for (const auto& v : arr)
         result.push_back(parseLineItem(static_cast<const Wt::Json::Object&>(v)));
+    enrichLineItems(result);
     return result;
 }
 
@@ -651,7 +872,10 @@ std::optional<QuoteLineItemDTO> ApiDataProvider::findLineItemById(long long id)
         auto json = httpGet("/QuoteLineItem/" + std::to_string(id) + "/");
         auto obj  = getDataObject(json);
         if (obj.empty()) return std::nullopt;
-        return parseLineItem(obj);
+        auto dto = parseLineItem(obj);
+        std::vector<QuoteLineItemDTO> v{dto};
+        enrichLineItems(v);
+        return v[0];
     } catch (...) {
         return std::nullopt;
     }

@@ -58,6 +58,15 @@ private:
     std::string apiKeyHeader_;
     std::string apiKeyValue_;
 
+    /// Resolve denormalized/computed fields after parsing raw API responses.
+    /// These use raw httpGet + parse to avoid cascading enrichment calls.
+    void enrichProducts(std::vector<ProductDTO>& products);
+    void enrichSuppliers(std::vector<SupplierDTO>& suppliers);
+    void enrichClients(std::vector<ClientDTO>& clients);
+    void enrichSupplierProducts(std::vector<SupplierProductDTO>& sps);
+    void enrichQuotes(std::vector<QuoteDTO>& quotes);
+    void enrichLineItems(std::vector<QuoteLineItemDTO>& items);
+
     /// Parse the host and port from baseUrl_ for socket connection.
     void parseUrl(std::string& host, std::string& port, std::string& basePath) const;
 

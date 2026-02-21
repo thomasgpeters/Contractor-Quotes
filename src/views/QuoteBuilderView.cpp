@@ -30,49 +30,68 @@ QuoteBuilderView::QuoteBuilderView(DataProvider& provider)
 
 void QuoteBuilderView::buildUI()
 {
-    addWidget(std::make_unique<Wt::WText>("<h2>Quote Builder</h2>"));
-    addWidget(std::make_unique<Wt::WText>(
+    listPanel_ = addWidget(std::make_unique<Wt::WContainerWidget>());
+
+    listPanel_->addWidget(std::make_unique<Wt::WText>("<h2>Quote Builder</h2>"));
+    listPanel_->addWidget(std::make_unique<Wt::WText>(
         "<p>Create quotes for clients with automatic best-source selection for each material.</p>"));
 
-    auto toolbar = addWidget(std::make_unique<Wt::WContainerWidget>());
+    auto toolbar = listPanel_->addWidget(std::make_unique<Wt::WContainerWidget>());
     toolbar->addStyleClass("toolbar");
 
     auto newBtn = toolbar->addWidget(std::make_unique<Wt::WPushButton>("+ New Quote"));
     newBtn->addStyleClass("btn btn-primary");
     newBtn->clicked().connect(this, &QuoteBuilderView::createNewQuote);
 
-    quoteListTable_ = addWidget(std::make_unique<Wt::WTable>());
+    quoteListTable_ = listPanel_->addWidget(std::make_unique<Wt::WTable>());
     quoteListTable_->addStyleClass("table table-striped");
 
     editorPanel_ = addWidget(std::make_unique<Wt::WContainerWidget>());
     editorPanel_->addStyleClass("quote-editor");
     editorPanel_->hide();
 
+    auto editorToolbar = editorPanel_->addWidget(std::make_unique<Wt::WContainerWidget>());
+    editorToolbar->addStyleClass("editor-nav");
+
+    auto backBtn = editorToolbar->addWidget(std::make_unique<Wt::WPushButton>());
+    backBtn->setTextFormat(Wt::TextFormat::XHTML);
+    backBtn->setText("&#8592;");
+    backBtn->addStyleClass("btn btn-link back-arrow");
+    backBtn->setToolTip("Back to Quotes");
+    backBtn->clicked().connect([this] {
+        currentQuoteId_ = -1;
+        editorPanel_->hide();
+        listPanel_->show();
+        refreshQuoteList();
+    });
+
+    editorQuoteId_ = editorToolbar->addWidget(std::make_unique<Wt::WText>("Quote #0"));
+    editorQuoteId_->addStyleClass("editor-quote-id");
+
     auto detailsBox = editorPanel_->addWidget(std::make_unique<Wt::WGroupBox>("Quote Details"));
     detailsBox->addStyleClass("form-group-box");
 
-    auto addFormRow = [&](Wt::WContainerWidget* parent, const std::string& label) {
-        auto row = parent->addWidget(std::make_unique<Wt::WContainerWidget>());
-        row->addStyleClass("form-row");
-        row->addWidget(std::make_unique<Wt::WLabel>(label));
-        return row;
+    auto addField = [&](Wt::WContainerWidget* parent, const std::string& label) {
+        auto cell = parent->addWidget(std::make_unique<Wt::WContainerWidget>());
+        cell->addStyleClass("form-cell");
+        cell->addWidget(std::make_unique<Wt::WLabel>(label));
+        return cell;
     };
 
-    auto row1 = addFormRow(detailsBox, "Title:");
-    titleEdit_ = row1->addWidget(std::make_unique<Wt::WLineEdit>());
+    // 3-column grid for short fields
+    auto grid3 = detailsBox->addWidget(std::make_unique<Wt::WContainerWidget>());
+    grid3->addStyleClass("form-grid-3");
+
+    auto cell1 = addField(grid3, "Title:");
+    titleEdit_ = cell1->addWidget(std::make_unique<Wt::WLineEdit>());
     titleEdit_->addStyleClass("form-control");
 
-    auto row2 = addFormRow(detailsBox, "Description:");
-    descEdit_ = row2->addWidget(std::make_unique<Wt::WTextArea>());
-    descEdit_->addStyleClass("form-control");
-    descEdit_->setRows(2);
-
-    auto row3 = addFormRow(detailsBox, "Client:");
-    clientCombo_ = row3->addWidget(std::make_unique<Wt::WComboBox>());
+    auto cell2 = addField(grid3, "Client:");
+    clientCombo_ = cell2->addWidget(std::make_unique<Wt::WComboBox>());
     clientCombo_->addStyleClass("form-control");
 
-    auto row4 = addFormRow(detailsBox, "Status:");
-    statusCombo_ = row4->addWidget(std::make_unique<Wt::WComboBox>());
+    auto cell3 = addField(grid3, "Status:");
+    statusCombo_ = cell3->addWidget(std::make_unique<Wt::WComboBox>());
     statusCombo_->addStyleClass("form-control");
     statusCombo_->addItem("Draft");
     statusCombo_->addItem("Sent");
@@ -80,24 +99,33 @@ void QuoteBuilderView::buildUI()
     statusCombo_->addItem("Rejected");
     statusCombo_->addItem("Expired");
 
-    auto row5 = addFormRow(detailsBox, "Tax Rate (%):");
-    taxRateSpin_ = row5->addWidget(std::make_unique<Wt::WDoubleSpinBox>());
+    auto cell4 = addField(grid3, "Tax Rate (%):");
+    taxRateSpin_ = cell4->addWidget(std::make_unique<Wt::WDoubleSpinBox>());
     taxRateSpin_->setRange(0, 25);
     taxRateSpin_->setValue(8.25);
     taxRateSpin_->setSingleStep(0.25);
-    taxRateSpin_->addStyleClass("form-control spin-control");
+    taxRateSpin_->addStyleClass("form-control");
 
-    auto row6 = addFormRow(detailsBox, "Markup (%):");
-    markupRateSpin_ = row6->addWidget(std::make_unique<Wt::WDoubleSpinBox>());
+    auto cell5 = addField(grid3, "Markup (%):");
+    markupRateSpin_ = cell5->addWidget(std::make_unique<Wt::WDoubleSpinBox>());
     markupRateSpin_->setRange(0, 100);
     markupRateSpin_->setValue(15.0);
     markupRateSpin_->setSingleStep(1);
-    markupRateSpin_->addStyleClass("form-control spin-control");
+    markupRateSpin_->addStyleClass("form-control");
 
-    auto row7 = addFormRow(detailsBox, "Notes:");
-    notesEdit_ = row7->addWidget(std::make_unique<Wt::WTextArea>());
+    // 2-column grid for Description & Notes
+    auto grid2 = detailsBox->addWidget(std::make_unique<Wt::WContainerWidget>());
+    grid2->addStyleClass("form-grid-2");
+
+    auto cellDesc = addField(grid2, "Description:");
+    descEdit_ = cellDesc->addWidget(std::make_unique<Wt::WTextArea>());
+    descEdit_->addStyleClass("form-control");
+    descEdit_->setRows(3);
+
+    auto cellNotes = addField(grid2, "Notes:");
+    notesEdit_ = cellNotes->addWidget(std::make_unique<Wt::WTextArea>());
     notesEdit_->addStyleClass("form-control");
-    notesEdit_->setRows(2);
+    notesEdit_->setRows(3);
 
     auto saveBar = detailsBox->addWidget(std::make_unique<Wt::WContainerWidget>());
     saveBar->addStyleClass("toolbar");
@@ -217,7 +245,9 @@ void QuoteBuilderView::createNewQuote()
 void QuoteBuilderView::openQuote(long long quoteId)
 {
     currentQuoteId_ = quoteId;
+    listPanel_->hide();
     editorPanel_->show();
+    editorQuoteId_->setText("Quote #" + std::to_string(quoteId));
 
     populateClientCombo();
 
@@ -277,6 +307,10 @@ void QuoteBuilderView::saveQuote()
     }
 
     provider_.updateQuote(currentQuoteId_, dto);
+
+    currentQuoteId_ = -1;
+    editorPanel_->hide();
+    listPanel_->show();
     refreshQuoteList();
 }
 
@@ -295,6 +329,7 @@ void QuoteBuilderView::deleteQuote(long long quoteId)
             if (currentQuoteId_ == quoteId) {
                 currentQuoteId_ = -1;
                 editorPanel_->hide();
+                listPanel_->show();
             }
             refreshQuoteList();
         }

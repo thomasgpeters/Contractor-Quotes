@@ -21,10 +21,12 @@ private:
     DataProvider& provider_;
 
     // Quote list
-    Wt::WTable* quoteListTable_ = nullptr;
+    Wt::WContainerWidget* listPanel_       = nullptr;
+    Wt::WTable*           quoteListTable_  = nullptr;
 
     // Quote editor widgets
     Wt::WContainerWidget* editorPanel_     = nullptr;
+    Wt::WText*            editorQuoteId_   = nullptr;
     Wt::WLineEdit*        titleEdit_       = nullptr;
     Wt::WTextArea*        descEdit_        = nullptr;
     Wt::WComboBox*        clientCombo_     = nullptr;

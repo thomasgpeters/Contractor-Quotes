@@ -20,4 +20,5 @@ private:
     Wt::WStackedWidget*  stack_;
 
     void setupNavigation(Wt::WContainerWidget* root);
+    void showAboutDialog();
 };

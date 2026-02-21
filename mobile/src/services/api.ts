@@ -102,6 +102,153 @@ function getDataObject(json: JsonApiResponse): JsonApiResource | null {
   return !Array.isArray(json.data) ? json.data : null;
 }
 
+// ── Enrichment helpers (raw apiGet to avoid cascading) ──────
+
+async function enrichProducts(products: Product[]): Promise<void> {
+  if (products.length === 0) return;
+  const json = await apiGet('/SupplierProduct/?page[limit]=5000');
+  const sps = getDataArray(json).map(parseSupplierProduct);
+
+  const pricesByProduct = new Map<number, number[]>();
+  for (const sp of sps) {
+    const arr = pricesByProduct.get(sp.productId) || [];
+    arr.push(sp.unitPrice);
+    pricesByProduct.set(sp.productId, arr);
+  }
+
+  for (const p of products) {
+    const prices = pricesByProduct.get(p.id);
+    if (prices && prices.length > 0) {
+      p.supplierCount = prices.length;
+      p.minPrice = Math.min(...prices);
+      p.maxPrice = Math.max(...prices);
+    }
+  }
+}
+
+async function enrichSuppliers(suppliers: Supplier[]): Promise<void> {
+  if (suppliers.length === 0) return;
+  const json = await apiGet('/SupplierProduct/?page[limit]=5000');
+  const sps = getDataArray(json).map(parseSupplierProduct);
+
+  const countBySupplier = new Map<number, number>();
+  for (const sp of sps) {
+    countBySupplier.set(sp.supplierId, (countBySupplier.get(sp.supplierId) || 0) + 1);
+  }
+
+  for (const s of suppliers) {
+    const count = countBySupplier.get(s.id);
+    if (count) s.productCount = count;
+  }
+}
+
+async function enrichClients(clients: Client[]): Promise<void> {
+  if (clients.length === 0) return;
+  const json = await apiGet('/Quote/?page[limit]=5000');
+  const quotes = getDataArray(json).map(parseQuote);
+
+  const countByClient = new Map<number, number>();
+  for (const q of quotes) {
+    if (q.clientId > 0)
+      countByClient.set(q.clientId, (countByClient.get(q.clientId) || 0) + 1);
+  }
+
+  for (const c of clients) {
+    const count = countByClient.get(c.id);
+    if (count) c.quoteCount = count;
+  }
+}
+
+async function enrichSupplierProducts(sps: SupplierProduct[]): Promise<void> {
+  if (sps.length === 0) return;
+
+  const [pJson, sJson] = await Promise.all([
+    apiGet('/Product/?page[limit]=5000'),
+    apiGet('/Supplier/?page[limit]=5000'),
+  ]);
+
+  const products = getDataArray(pJson).map(parseProduct);
+  const suppliers = getDataArray(sJson).map(parseSupplier);
+
+  const prodMap = new Map(products.map((p) => [p.id, p]));
+  const suppMap = new Map(suppliers.map((s) => [s.id, s]));
+
+  for (const sp of sps) {
+    const prod = prodMap.get(sp.productId);
+    if (prod) {
+      sp.productName = prod.name;
+      sp.productSku = prod.sku;
+      sp.productCategory = prod.category;
+    }
+    const supp = suppMap.get(sp.supplierId);
+    if (supp) {
+      sp.supplierName = supp.name;
+      sp.supplierRating = supp.rating;
+      sp.supplierLeadDays = supp.leadTimeDays;
+      sp.supplierLat = supp.latitude;
+      sp.supplierLon = supp.longitude;
+    }
+  }
+}
+
+async function enrichQuotes(quotes: Quote[]): Promise<void> {
+  if (quotes.length === 0) return;
+
+  const [cJson, liJson] = await Promise.all([
+    apiGet('/Client/?page[limit]=5000'),
+    apiGet('/QuoteLineItem/?page[limit]=5000'),
+  ]);
+
+  const clients = getDataArray(cJson).map(parseClient);
+  const lineItems = getDataArray(liJson).map(parseLineItem);
+
+  const clientNames = new Map(clients.map((c) => [c.id, c.name]));
+
+  const quoteTotals = new Map<number, { count: number; total: number }>();
+  for (const li of lineItems) {
+    const entry = quoteTotals.get(li.quoteId) || { count: 0, total: 0 };
+    entry.count++;
+    entry.total += li.lineTotal;
+    quoteTotals.set(li.quoteId, entry);
+  }
+
+  for (const q of quotes) {
+    if (q.clientId > 0) {
+      q.clientName = clientNames.get(q.clientId);
+    }
+    const totals = quoteTotals.get(q.id);
+    if (totals) {
+      q.lineItemCount = totals.count;
+      q.totalAmount = totals.total;
+    }
+  }
+}
+
+async function enrichLineItems(items: QuoteLineItem[]): Promise<void> {
+  if (items.length === 0) return;
+
+  const [pJson, sJson] = await Promise.all([
+    apiGet('/Product/?page[limit]=5000'),
+    apiGet('/Supplier/?page[limit]=5000'),
+  ]);
+
+  const products = getDataArray(pJson).map(parseProduct);
+  const suppliers = getDataArray(sJson).map(parseSupplier);
+
+  const prodMap = new Map(products.map((p) => [p.id, p]));
+  const suppNames = new Map(suppliers.map((s) => [s.id, s.name]));
+
+  for (const li of items) {
+    const prod = prodMap.get(li.productId);
+    if (prod) {
+      li.productName = prod.name;
+      li.productUnit = prod.unit;
+    }
+    const suppName = suppNames.get(li.supplierId);
+    if (suppName) li.supplierName = suppName;
+  }
+}
+
 // ── Products ─────────────────────────────────────────────────
 
 function parseProduct(r: JsonApiResource): Product {
@@ -117,14 +264,19 @@ function parseProduct(r: JsonApiResource): Product {
 
 export async function fetchProducts(): Promise<Product[]> {
   const json = await apiGet('/Product/?page[limit]=1000');
-  return getDataArray(json).map(parseProduct);
+  const products = getDataArray(json).map(parseProduct);
+  await enrichProducts(products);
+  return products;
 }
 
 export async function fetchProductById(id: number): Promise<Product | null> {
   try {
     const json = await apiGet(`/Product/${id}/`);
     const r = getDataObject(json);
-    return r ? parseProduct(r) : null;
+    if (!r) return null;
+    const product = parseProduct(r);
+    await enrichProducts([product]);
+    return product;
   } catch {
     return null;
   }
@@ -158,14 +310,19 @@ function parseSupplier(r: JsonApiResource): Supplier {
 
 export async function fetchSuppliers(): Promise<Supplier[]> {
   const json = await apiGet('/Supplier/?page[limit]=1000');
-  return getDataArray(json).map(parseSupplier);
+  const suppliers = getDataArray(json).map(parseSupplier);
+  await enrichSuppliers(suppliers);
+  return suppliers;
 }
 
 export async function fetchSupplierById(id: number): Promise<Supplier | null> {
   try {
     const json = await apiGet(`/Supplier/${id}/`);
     const r = getDataObject(json);
-    return r ? parseSupplier(r) : null;
+    if (!r) return null;
+    const supplier = parseSupplier(r);
+    await enrichSuppliers([supplier]);
+    return supplier;
   } catch {
     return null;
   }
@@ -191,12 +348,16 @@ function parseSupplierProduct(r: JsonApiResource): SupplierProduct {
 
 export async function fetchSupplierProductsByProductId(productId: number): Promise<SupplierProduct[]> {
   const json = await apiGet(`/SupplierProduct/?filter[product_id]=${productId}&page[limit]=1000`);
-  return getDataArray(json).map(parseSupplierProduct);
+  const sps = getDataArray(json).map(parseSupplierProduct);
+  await enrichSupplierProducts(sps);
+  return sps;
 }
 
 export async function fetchSupplierProductsBySupplierId(supplierId: number): Promise<SupplierProduct[]> {
   const json = await apiGet(`/SupplierProduct/?filter[supplier_id]=${supplierId}&page[limit]=1000`);
-  return getDataArray(json).map(parseSupplierProduct);
+  const sps = getDataArray(json).map(parseSupplierProduct);
+  await enrichSupplierProducts(sps);
+  return sps;
 }
 
 // ── Clients ──────────────────────────────────────────────────
@@ -219,14 +380,19 @@ function parseClient(r: JsonApiResource): Client {
 
 export async function fetchClients(): Promise<Client[]> {
   const json = await apiGet('/Client/?page[limit]=1000');
-  return getDataArray(json).map(parseClient);
+  const clients = getDataArray(json).map(parseClient);
+  await enrichClients(clients);
+  return clients;
 }
 
 export async function fetchClientById(id: number): Promise<Client | null> {
   try {
     const json = await apiGet(`/Client/${id}/`);
     const r = getDataObject(json);
-    return r ? parseClient(r) : null;
+    if (!r) return null;
+    const client = parseClient(r);
+    await enrichClients([client]);
+    return client;
   } catch {
     return null;
   }
@@ -289,19 +455,26 @@ function parseQuote(r: JsonApiResource): Quote {
 
 export async function fetchQuotes(): Promise<Quote[]> {
   const json = await apiGet('/Quote/?page[limit]=1000&sort=-created_date');
-  return getDataArray(json).map(parseQuote);
+  const quotes = getDataArray(json).map(parseQuote);
+  await enrichQuotes(quotes);
+  return quotes;
 }
 
 export async function fetchRecentQuotes(limit: number): Promise<Quote[]> {
   const json = await apiGet(`/Quote/?page[limit]=${limit}&sort=-created_date`);
-  return getDataArray(json).map(parseQuote);
+  const quotes = getDataArray(json).map(parseQuote);
+  await enrichQuotes(quotes);
+  return quotes;
 }
 
 export async function fetchQuoteById(id: number): Promise<Quote | null> {
   try {
     const json = await apiGet(`/Quote/${id}/`);
     const r = getDataObject(json);
-    return r ? parseQuote(r) : null;
+    if (!r) return null;
+    const quote = parseQuote(r);
+    await enrichQuotes([quote]);
+    return quote;
   } catch {
     return null;
   }
@@ -317,7 +490,7 @@ export async function createQuote(quote: Partial<Quote>): Promise<Quote> {
     notes: quote.notes || '',
   };
   if (quote.clientId && quote.clientId > 0) attrs.client_id = quote.clientId;
-  if (quote.createdDate) attrs.created_date = quote.createdDate;
+  attrs.created_date = quote.createdDate || new Date().toISOString().slice(0, 19);
   if (quote.expiryDate) attrs.expiry_date = quote.expiryDate;
 
   const json = await apiPost('/Quote/', 'Quote', attrs);
@@ -369,7 +542,9 @@ function parseLineItem(r: JsonApiResource): QuoteLineItem {
 
 export async function fetchLineItemsByQuoteId(quoteId: number): Promise<QuoteLineItem[]> {
   const json = await apiGet(`/QuoteLineItem/?filter[quote_id]=${quoteId}&page[limit]=1000`);
-  return getDataArray(json).map(parseLineItem);
+  const items = getDataArray(json).map(parseLineItem);
+  await enrichLineItems(items);
+  return items;
 }
 
 export async function createLineItem(item: Partial<QuoteLineItem>): Promise<QuoteLineItem> {

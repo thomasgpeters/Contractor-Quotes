@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 
 const tabs = [
@@ -9,8 +10,37 @@ const tabs = [
 ];
 
 export default function Layout() {
+  const [showAbout, setShowAbout] = useState(false);
+
   return (
     <div className="app-layout">
+      <header className="app-header">
+        <img src="/images/imagery_logo.png" alt="Imagery" className="app-header-logo logo-light" />
+        <img src="/images/imagery_logo_white.png" alt="Imagery" className="app-header-logo logo-dark" />
+        <span className="app-header-title">Contractor Quotes</span>
+        <button className="about-btn" onClick={() => setShowAbout(true)} aria-label="About">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width="20" height="20">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+        </button>
+      </header>
+
+      {showAbout && (
+        <div className="about-overlay" onClick={() => setShowAbout(false)}>
+          <div className="about-modal" onClick={(e) => e.stopPropagation()}>
+            <img src="/images/imagery_logo.png" alt="Imagery Business Systems" className="about-modal-logo logo-light" />
+            <img src="/images/imagery_logo_white.png" alt="Imagery Business Systems" className="about-modal-logo logo-dark" />
+            <h2>Contractor Quotes &amp; Sourcing</h2>
+            <p>A comprehensive quoting and material sourcing platform for contractors. Build accurate quotes with automatic best-source supplier selection, real-time pricing, and intelligent inventory-aware recommendations.</p>
+            <p className="about-copy">&copy; 2026 Imagery Business Systems. All rights reserved.</p>
+            <a href="https://imagery-business-systems.com" target="_blank" rel="noopener noreferrer">imagery-business-systems.com</a>
+            <button className="btn-primary full-width" style={{ marginTop: '1rem' }} onClick={() => setShowAbout(false)}>Close</button>
+          </div>
+        </div>
+      )}
+
       <main className="app-main">
         <Outlet />
       </main>
