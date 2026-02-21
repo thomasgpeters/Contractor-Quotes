@@ -11,6 +11,9 @@
     background-color: #1a2332 !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     padding: 0.5rem 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 1030;
 }
 
 .main-navbar .navbar-brand {
