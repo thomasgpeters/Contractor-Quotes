@@ -49,7 +49,7 @@ void ContractorApp::setupNavigation(Wt::WContainerWidget* root)
     auto aboutBtn = std::make_unique<Wt::WPushButton>();
     aboutBtn->setText(Wt::WString::fromUTF8("\xe2\x93\x98"));
     aboutBtn->addStyleClass("btn btn-link about-btn");
-    aboutBtn->setToolTip("About");
+    aboutBtn->setToolTip("Display Information");
     aboutBtn->clicked().connect([this] { showAboutDialog(); });
     navBar->addWidget(std::move(aboutBtn), Wt::AlignmentFlag::Right);
 
