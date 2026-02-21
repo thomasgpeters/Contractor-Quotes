@@ -286,6 +286,43 @@
     flex: 1;
 }
 
+/* ----- Form Grid Layouts ----- */
+.form-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-cell label {
+    display: block;
+    font-weight: 500;
+    color: #546e7a;
+    font-size: 0.85rem;
+    margin-bottom: 0.35rem;
+}
+
+.form-cell .form-control {
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .form-grid-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .form-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* ----- Dialog ----- */
 .dialog-content {
     padding: 1rem;
