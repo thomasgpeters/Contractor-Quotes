@@ -349,6 +349,7 @@
     text-decoration: none;
     opacity: 0.8;
     transition: opacity 0.2s;
+    margin-left: auto;
 }
 
 .about-btn:hover {
