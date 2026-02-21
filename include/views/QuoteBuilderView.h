@@ -21,7 +21,8 @@ private:
     DataProvider& provider_;
 
     // Quote list
-    Wt::WTable* quoteListTable_ = nullptr;
+    Wt::WContainerWidget* listPanel_       = nullptr;
+    Wt::WTable*           quoteListTable_  = nullptr;
 
     // Quote editor widgets
     Wt::WContainerWidget* editorPanel_     = nullptr;
