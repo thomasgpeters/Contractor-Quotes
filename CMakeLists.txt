@@ -15,6 +15,9 @@ find_package(Boost REQUIRED COMPONENTS system filesystem thread)
 set(SOURCES
     src/main.cpp
     src/models/Session.cpp
+    src/config/AppConfig.cpp
+    src/data/LocalDataProvider.cpp
+    src/data/ApiDataProvider.cpp
     src/engine/SourcingEngine.cpp
     src/views/ContractorApp.cpp
     src/views/DashboardView.cpp
@@ -52,6 +55,14 @@ add_custom_target(copy_resources ALL
     COMMENT "Copying resources to build directory"
 )
 add_dependencies(contractor_quotes copy_resources)
+
+# Copy model config to build directory
+add_custom_target(copy_model ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/model ${CMAKE_BINARY_DIR}/model
+    COMMENT "Copying model config to build directory"
+)
+add_dependencies(contractor_quotes copy_model)
 
 # Copy start and env scripts to build directory
 file(COPY ${CMAKE_SOURCE_DIR}/scripts/start.sh DESTINATION ${CMAKE_BINARY_DIR}

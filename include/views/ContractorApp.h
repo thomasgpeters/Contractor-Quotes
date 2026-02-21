@@ -6,15 +6,15 @@
 #include <Wt/WContainerWidget.h>
 #include <memory>
 
-class Session;
+class DataProvider;
 
 /// Top-level Wt application – sets up navigation and manages page views.
 class ContractorApp : public Wt::WApplication {
 public:
-    ContractorApp(const Wt::WEnvironment& env, Session& session);
+    ContractorApp(const Wt::WEnvironment& env, DataProvider& provider);
 
 private:
-    Session& session_;
+    DataProvider& provider_;
 
     Wt::WMenu*           menu_;
     Wt::WStackedWidget*  stack_;

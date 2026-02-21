@@ -1,11 +1,5 @@
 #include "views/QuoteBuilderView.h"
-#include "models/Session.h"
-#include "models/Product.h"
-#include "models/Supplier.h"
-#include "models/SupplierProduct.h"
-#include "models/Client.h"
-#include "models/Quote.h"
-#include "models/QuoteLineItem.h"
+#include "data/DataProvider.h"
 #include "engine/SourcingEngine.h"
 #include <Wt/WText.h>
 #include <Wt/WBreak.h>
@@ -16,8 +10,19 @@
 #include <sstream>
 #include <iomanip>
 
-QuoteBuilderView::QuoteBuilderView(Session& session)
-    : session_(session)
+static const char* statusLabel(int s) {
+    switch (s) {
+        case 0: return "Draft";
+        case 1: return "Sent";
+        case 2: return "Accepted";
+        case 3: return "Rejected";
+        case 4: return "Expired";
+        default: return "?";
+    }
+}
+
+QuoteBuilderView::QuoteBuilderView(DataProvider& provider)
+    : provider_(provider)
 {
     addStyleClass("quote-builder-view");
     buildUI();
@@ -29,7 +34,6 @@ void QuoteBuilderView::buildUI()
     addWidget(std::make_unique<Wt::WText>(
         "<p>Create quotes for clients with automatic best-source selection for each material.</p>"));
 
-    // Top area: quote list + new quote button
     auto toolbar = addWidget(std::make_unique<Wt::WContainerWidget>());
     toolbar->addStyleClass("toolbar");
 
@@ -40,12 +44,10 @@ void QuoteBuilderView::buildUI()
     quoteListTable_ = addWidget(std::make_unique<Wt::WTable>());
     quoteListTable_->addStyleClass("table table-striped");
 
-    // Editor panel (hidden until a quote is selected)
     editorPanel_ = addWidget(std::make_unique<Wt::WContainerWidget>());
     editorPanel_->addStyleClass("quote-editor");
     editorPanel_->hide();
 
-    // Quote details form
     auto detailsBox = editorPanel_->addWidget(std::make_unique<Wt::WGroupBox>("Quote Details"));
     detailsBox->addStyleClass("form-group-box");
 
@@ -103,7 +105,6 @@ void QuoteBuilderView::buildUI()
     saveBtn->addStyleClass("btn btn-primary");
     saveBtn->clicked().connect(this, &QuoteBuilderView::saveQuote);
 
-    // Line items section
     auto lineBox = editorPanel_->addWidget(std::make_unique<Wt::WGroupBox>("Line Items"));
     lineBox->addStyleClass("form-group-box");
 
@@ -121,7 +122,6 @@ void QuoteBuilderView::buildUI()
     lineItemTable_ = lineBox->addWidget(std::make_unique<Wt::WTable>());
     lineItemTable_->addStyleClass("table table-striped");
 
-    // Totals section
     auto totalsBox = editorPanel_->addWidget(std::make_unique<Wt::WGroupBox>("Quote Totals"));
     totalsBox->addStyleClass("form-group-box totals-box");
 
@@ -142,12 +142,9 @@ void QuoteBuilderView::populateClientCombo()
     clientCombo_->clear();
     clientCombo_->addItem("-- Select Client --");
 
-    Wt::Dbo::Transaction t(session_.dbo());
-    auto clients = session_.dbo().find<Client>().orderBy("name").resultList();
-    for (auto& c : clients) {
-        clientCombo_->addItem(c->name + " (" + c->company + ")");
-    }
-    t.commit();
+    auto clients = provider_.findAllClients();
+    for (auto& c : clients)
+        clientCombo_->addItem(c.name + " (" + c.company + ")");
 }
 
 void QuoteBuilderView::refreshQuoteList()
@@ -163,47 +160,25 @@ void QuoteBuilderView::refreshQuoteList()
     quoteListTable_->elementAt(0, 5)->addWidget(std::make_unique<Wt::WText>("Created"));
     quoteListTable_->elementAt(0, 6)->addWidget(std::make_unique<Wt::WText>("Actions"));
 
-    Wt::Dbo::Transaction t(session_.dbo());
-    auto quotes = session_.dbo().find<Quote>()
-        .orderBy("created_date desc").resultList();
+    auto quotes = provider_.findAllQuotes();
 
     int row = 1;
     for (auto& q : quotes) {
         quoteListTable_->elementAt(row, 0)->addWidget(
-            std::make_unique<Wt::WText>(q->title));
-
-        std::string clientName = q->client ? q->client->name : "(none)";
+            std::make_unique<Wt::WText>(q.title));
         quoteListTable_->elementAt(row, 1)->addWidget(
-            std::make_unique<Wt::WText>(clientName));
-
-        std::string statusStr;
-        switch (q->status) {
-            case Quote::Status::Draft:    statusStr = "Draft"; break;
-            case Quote::Status::Sent:     statusStr = "Sent"; break;
-            case Quote::Status::Accepted: statusStr = "Accepted"; break;
-            case Quote::Status::Rejected: statusStr = "Rejected"; break;
-            case Quote::Status::Expired:  statusStr = "Expired"; break;
-        }
+            std::make_unique<Wt::WText>(q.clientName.empty() ? "(none)" : q.clientName));
         quoteListTable_->elementAt(row, 2)->addWidget(
-            std::make_unique<Wt::WText>(statusStr));
-
-        int itemCount = 0;
-        double total = 0;
-        for (const auto& li : q->lineItems) {
-            ++itemCount;
-            total += li->lineTotal;
-        }
-
+            std::make_unique<Wt::WText>(statusLabel(q.status)));
         quoteListTable_->elementAt(row, 3)->addWidget(
-            std::make_unique<Wt::WText>(std::to_string(itemCount)));
+            std::make_unique<Wt::WText>(std::to_string(q.lineItemCount)));
 
         std::ostringstream ts;
-        ts << "$" << std::fixed << std::setprecision(2) << total;
+        ts << "$" << std::fixed << std::setprecision(2) << q.totalAmount;
         quoteListTable_->elementAt(row, 4)->addWidget(
             std::make_unique<Wt::WText>(ts.str()));
 
-        std::string dateStr = q->createdDate.isValid()
-            ? q->createdDate.toString("yyyy-MM-dd").toUTF8() : "-";
+        std::string dateStr = q.createdDate.empty() ? "-" : q.createdDate.substr(0, 10);
         quoteListTable_->elementAt(row, 5)->addWidget(
             std::make_unique<Wt::WText>(dateStr));
 
@@ -211,7 +186,7 @@ void QuoteBuilderView::refreshQuoteList()
             std::make_unique<Wt::WContainerWidget>());
         actionsDiv->addStyleClass("action-buttons");
 
-        long long qid = q.id();
+        long long qid = q.id;
 
         auto openBtn = actionsDiv->addWidget(std::make_unique<Wt::WPushButton>("Open"));
         openBtn->addStyleClass("btn btn-sm btn-primary");
@@ -223,26 +198,20 @@ void QuoteBuilderView::refreshQuoteList()
 
         ++row;
     }
-
-    t.commit();
 }
 
 void QuoteBuilderView::createNewQuote()
 {
-    Wt::Dbo::Transaction t(session_.dbo());
+    QuoteDTO dto;
+    dto.title      = "New Quote";
+    dto.status     = 0; // Draft
+    dto.taxRate    = 8.25;
+    dto.markupRate = 15.0;
 
-    auto q = session_.dbo().addNew<Quote>();
-    q.modify()->title       = "New Quote";
-    q.modify()->createdDate = Wt::WDateTime::currentDateTime();
-    q.modify()->status      = Quote::Status::Draft;
-    q.modify()->taxRate     = 8.25;
-    q.modify()->markupRate  = 15.0;
-
-    long long newId = q.id();
-    t.commit();
+    auto created = provider_.createQuote(dto);
 
     refreshQuoteList();
-    openQuote(newId);
+    openQuote(created.id);
 }
 
 void QuoteBuilderView::openQuote(long long quoteId)
@@ -252,32 +221,31 @@ void QuoteBuilderView::openQuote(long long quoteId)
 
     populateClientCombo();
 
-    Wt::Dbo::Transaction t(session_.dbo());
-    auto q = session_.dbo().find<Quote>()
-        .where("id = ?").bind(quoteId).resultValue();
+    auto q = provider_.findQuoteById(quoteId);
     if (!q) return;
 
     titleEdit_->setText(q->title);
     descEdit_->setText(q->description);
-    statusCombo_->setCurrentIndex(static_cast<int>(q->status));
+    statusCombo_->setCurrentIndex(q->status);
     taxRateSpin_->setValue(q->taxRate);
     markupRateSpin_->setValue(q->markupRate);
     notesEdit_->setText(q->notes);
 
     // Select client in combo
-    if (q->client) {
-        std::string clientLabel = q->client->name + " (" + q->client->company + ")";
-        for (int i = 0; i < clientCombo_->count(); ++i) {
-            if (clientCombo_->itemText(i).toUTF8() == clientLabel) {
-                clientCombo_->setCurrentIndex(i);
+    if (q->clientId > 0) {
+        auto clients = provider_.findAllClients();
+        int idx = 1;
+        for (auto& c : clients) {
+            std::string label = c.name + " (" + c.company + ")";
+            if (c.id == q->clientId) {
+                clientCombo_->setCurrentIndex(idx);
                 break;
             }
+            ++idx;
         }
     } else {
         clientCombo_->setCurrentIndex(0);
     }
-
-    t.commit();
 
     refreshLineItems();
     updateTotals();
@@ -287,32 +255,28 @@ void QuoteBuilderView::saveQuote()
 {
     if (currentQuoteId_ < 0) return;
 
-    Wt::Dbo::Transaction t(session_.dbo());
-    auto q = session_.dbo().find<Quote>()
-        .where("id = ?").bind(currentQuoteId_).resultValue();
-    if (!q) return;
+    QuoteDTO dto;
+    dto.title       = titleEdit_->text().toUTF8();
+    dto.description = descEdit_->text().toUTF8();
+    dto.status      = statusCombo_->currentIndex();
+    dto.taxRate     = taxRateSpin_->value();
+    dto.markupRate  = markupRateSpin_->value();
+    dto.notes       = notesEdit_->text().toUTF8();
 
-    q.modify()->title       = titleEdit_->text().toUTF8();
-    q.modify()->description = descEdit_->text().toUTF8();
-    q.modify()->status      = static_cast<Quote::Status>(statusCombo_->currentIndex());
-    q.modify()->taxRate     = taxRateSpin_->value();
-    q.modify()->markupRate  = markupRateSpin_->value();
-    q.modify()->notes       = notesEdit_->text().toUTF8();
-
-    // Resolve client from combo
+    // Resolve client from combo index
     if (clientCombo_->currentIndex() > 0) {
-        auto clients = session_.dbo().find<Client>().orderBy("name").resultList();
+        auto clients = provider_.findAllClients();
         int idx = 1;
         for (auto& c : clients) {
             if (idx == clientCombo_->currentIndex()) {
-                q.modify()->client = c;
+                dto.clientId = c.id;
                 break;
             }
             ++idx;
         }
     }
 
-    t.commit();
+    provider_.updateQuote(currentQuoteId_, dto);
     refreshQuoteList();
 }
 
@@ -326,16 +290,7 @@ void QuoteBuilderView::deleteQuote(long long quoteId)
 
     msgBox->buttonClicked().connect([=] {
         if (msgBox->buttonResult() == Wt::StandardButton::Yes) {
-            Wt::Dbo::Transaction t(session_.dbo());
-            auto lineItems = session_.dbo().find<QuoteLineItem>()
-                .where("quote_id = ?").bind(quoteId).resultList();
-            for (auto& li : lineItems) {
-                li.remove();
-            }
-            auto q = session_.dbo().find<Quote>()
-                .where("id = ?").bind(quoteId).resultValue();
-            if (q) q.remove();
-            t.commit();
+            provider_.deleteQuote(quoteId);
 
             if (currentQuoteId_ == quoteId) {
                 currentQuoteId_ = -1;
@@ -365,38 +320,30 @@ void QuoteBuilderView::refreshLineItems()
 
     if (currentQuoteId_ < 0) return;
 
-    Wt::Dbo::Transaction t(session_.dbo());
-    auto lineItems = session_.dbo().find<QuoteLineItem>()
-        .where("quote_id = ?").bind(currentQuoteId_)
-        .resultList();
+    auto lineItems = provider_.findLineItemsByQuoteId(currentQuoteId_);
 
     int row = 1;
     for (auto& li : lineItems) {
         lineItemTable_->elementAt(row, 0)->addWidget(
             std::make_unique<Wt::WText>(std::to_string(row)));
-
-        std::string prodName = li->product ? li->product->name : "(select product)";
         lineItemTable_->elementAt(row, 1)->addWidget(
-            std::make_unique<Wt::WText>(prodName));
+            std::make_unique<Wt::WText>(li.productName.empty() ? "(select product)" : li.productName));
         lineItemTable_->elementAt(row, 2)->addWidget(
-            std::make_unique<Wt::WText>(std::to_string(li->quantity)));
-
-        std::string supplierName = li->supplier ? li->supplier->name : "(not sourced)";
+            std::make_unique<Wt::WText>(std::to_string(li.quantity)));
         lineItemTable_->elementAt(row, 3)->addWidget(
-            std::make_unique<Wt::WText>(supplierName));
+            std::make_unique<Wt::WText>(li.supplierName.empty() ? "(not sourced)" : li.supplierName));
 
         std::ostringstream upStr, ltStr;
-        upStr << "$" << std::fixed << std::setprecision(2) << li->unitPrice;
-        ltStr << "$" << std::fixed << std::setprecision(2) << li->lineTotal;
+        upStr << "$" << std::fixed << std::setprecision(2) << li.unitPrice;
+        ltStr << "$" << std::fixed << std::setprecision(2) << li.lineTotal;
 
         lineItemTable_->elementAt(row, 4)->addWidget(
             std::make_unique<Wt::WText>(upStr.str()));
 
         std::ostringstream mkStr;
-        mkStr << std::fixed << std::setprecision(1) << li->markup << "%";
+        mkStr << std::fixed << std::setprecision(1) << li.markup << "%";
         lineItemTable_->elementAt(row, 5)->addWidget(
             std::make_unique<Wt::WText>(mkStr.str()));
-
         lineItemTable_->elementAt(row, 6)->addWidget(
             std::make_unique<Wt::WText>(ltStr.str()));
 
@@ -404,7 +351,7 @@ void QuoteBuilderView::refreshLineItems()
             std::make_unique<Wt::WContainerWidget>());
         actionsDiv->addStyleClass("action-buttons");
 
-        long long liId = li.id();
+        long long liId = li.id;
 
         auto sourceBtn = actionsDiv->addWidget(
             std::make_unique<Wt::WPushButton>("Find Source"));
@@ -418,15 +365,12 @@ void QuoteBuilderView::refreshLineItems()
 
         ++row;
     }
-
-    t.commit();
 }
 
 void QuoteBuilderView::addLineItem()
 {
     if (currentQuoteId_ < 0) return;
 
-    // Dialog to select product and quantity
     auto dialog = addChild(std::make_unique<Wt::WDialog>("Add Line Item"));
     dialog->setModal(true);
     dialog->setClosable(true);
@@ -438,15 +382,11 @@ void QuoteBuilderView::addLineItem()
     auto prodCombo = dialog->contents()->addWidget(std::make_unique<Wt::WComboBox>());
     prodCombo->addStyleClass("form-control");
 
+    auto products = provider_.findAllProducts();
     std::vector<long long> productIds;
-    {
-        Wt::Dbo::Transaction t(session_.dbo());
-        auto products = session_.dbo().find<Product>().orderBy("category, name").resultList();
-        for (auto& p : products) {
-            prodCombo->addItem("[" + p->category + "] " + p->name + " (" + p->sku + ")");
-            productIds.push_back(p.id());
-        }
-        t.commit();
+    for (auto& p : products) {
+        prodCombo->addItem("[" + p.category + "] " + p.name + " (" + p.sku + ")");
+        productIds.push_back(p.id);
     }
 
     dialog->contents()->addWidget(std::make_unique<Wt::WBreak>());
@@ -474,25 +414,13 @@ void QuoteBuilderView::addLineItem()
             static_cast<size_t>(prodCombo->currentIndex()) >= productIds.size())
             return;
 
-        long long selectedProductId = productIds[prodCombo->currentIndex()];
-        int qty = qtySpin->value();
-        double markup = markupSpin->value();
+        QuoteLineItemDTO dto;
+        dto.quoteId   = currentQuoteId_;
+        dto.productId = productIds[prodCombo->currentIndex()];
+        dto.quantity  = qtySpin->value();
+        dto.markup    = markupSpin->value();
 
-        Wt::Dbo::Transaction t(session_.dbo());
-
-        auto quote = session_.dbo().find<Quote>()
-            .where("id = ?").bind(currentQuoteId_).resultValue();
-        auto product = session_.dbo().find<Product>()
-            .where("id = ?").bind(selectedProductId).resultValue();
-
-        auto li = session_.dbo().addNew<QuoteLineItem>();
-        li.modify()->quote    = quote;
-        li.modify()->product  = product;
-        li.modify()->quantity = qty;
-        li.modify()->markup   = markup;
-        // Price and supplier will be set when sourcing is run
-
-        t.commit();
+        provider_.createLineItem(dto);
 
         dialog->accept();
         refreshLineItems();
@@ -505,47 +433,43 @@ void QuoteBuilderView::addLineItem()
 
 void QuoteBuilderView::removeLineItem(long long lineItemId)
 {
-    Wt::Dbo::Transaction t(session_.dbo());
-    auto li = session_.dbo().find<QuoteLineItem>()
-        .where("id = ?").bind(lineItemId).resultValue();
-    if (li) li.remove();
-    t.commit();
-
+    provider_.deleteLineItem(lineItemId);
     refreshLineItems();
     updateTotals();
 }
 
 void QuoteBuilderView::runSourcing(long long lineItemId)
 {
-    Wt::Dbo::Transaction t(session_.dbo());
+    auto li = provider_.findLineItemById(lineItemId);
+    if (!li || li->productId <= 0) return;
 
-    auto li = session_.dbo().find<QuoteLineItem>()
-        .where("id = ?").bind(lineItemId).resultValue();
-    if (!li || !li->product) return;
-
-    // Determine job site location from the quote's client, or default
-    double jobLat = 30.267, jobLon = -97.743; // Austin TX default
-    auto quote = li->quote;
-    if (quote && quote->client) {
-        if (quote->client->latitude != 0.0) {
-            jobLat = quote->client->latitude;
-            jobLon = quote->client->longitude;
+    // Determine job site from client
+    double jobLat = 30.267, jobLon = -97.743;
+    auto quote = provider_.findQuoteById(li->quoteId);
+    if (quote && quote->clientId > 0) {
+        auto client = provider_.findClientById(quote->clientId);
+        if (client && client->latitude != 0.0) {
+            jobLat = client->latitude;
+            jobLon = client->longitude;
         }
     }
 
-    SourcingEngine engine(session_.dbo());
-    auto results = engine.findBestSources(
-        li->product.id(), li->quantity, jobLat, jobLon);
+    SourcingEngine engine(provider_);
+    auto results = engine.findBestSources(li->productId, li->quantity, jobLat, jobLon);
 
     if (!results.empty()) {
         auto& best = results[0];
-        li.modify()->unitPrice = best.effectivePrice;
-        li.modify()->supplier  = best.supplierProduct->supplier;
-        li.modify()->computeTotal();
 
-        // Show sourcing results dialog
+        // Update the line item with best source
+        QuoteLineItemDTO update = *li;
+        update.unitPrice  = best.effectivePrice;
+        update.supplierId = best.supplierId;
+        update.lineTotal  = li->quantity * best.effectivePrice * (1.0 + li->markup / 100.0);
+        provider_.updateLineItem(lineItemId, update);
+
+        // Show results dialog
         auto dialog = addChild(std::make_unique<Wt::WDialog>(
-            "Sourcing Results: " + li->product->name));
+            "Sourcing Results: " + li->productName));
         dialog->setModal(true);
         dialog->setClosable(true);
         dialog->rejectWhenEscapePressed();
@@ -553,7 +477,7 @@ void QuoteBuilderView::runSourcing(long long lineItemId)
         dialog->contents()->addStyleClass("dialog-content");
 
         std::ostringstream header;
-        header << "<p><strong>Product:</strong> " << li->product->name
+        header << "<p><strong>Product:</strong> " << li->productName
                << " | <strong>Quantity:</strong> " << li->quantity
                << " | <strong>Best Source:</strong> " << best.supplierName << "</p>";
         dialog->contents()->addWidget(std::make_unique<Wt::WText>(header.str()));
@@ -571,11 +495,11 @@ void QuoteBuilderView::runSourcing(long long lineItemId)
         table->elementAt(0, 6)->addWidget(std::make_unique<Wt::WText>("Score"));
         table->elementAt(0, 7)->addWidget(std::make_unique<Wt::WText>("Select"));
 
-        int row = 1;
+        int srow = 1;
         for (auto& r : results) {
-            table->elementAt(row, 0)->addWidget(
-                std::make_unique<Wt::WText>(std::to_string(row)));
-            table->elementAt(row, 1)->addWidget(
+            table->elementAt(srow, 0)->addWidget(
+                std::make_unique<Wt::WText>(std::to_string(srow)));
+            table->elementAt(srow, 1)->addWidget(
                 std::make_unique<Wt::WText>(r.supplierName));
 
             std::ostringstream ep, dist, sc;
@@ -583,46 +507,43 @@ void QuoteBuilderView::runSourcing(long long lineItemId)
             dist << std::fixed << std::setprecision(1) << r.distanceMiles << " mi";
             sc << std::fixed << std::setprecision(3) << r.compositeScore;
 
-            table->elementAt(row, 2)->addWidget(std::make_unique<Wt::WText>(ep.str()));
-            table->elementAt(row, 3)->addWidget(
+            table->elementAt(srow, 2)->addWidget(std::make_unique<Wt::WText>(ep.str()));
+            table->elementAt(srow, 3)->addWidget(
                 std::make_unique<Wt::WText>(
                     std::to_string(r.availableQty) + (r.meetsQty ? "" : " (short)")));
-            table->elementAt(row, 4)->addWidget(std::make_unique<Wt::WText>(dist.str()));
+            table->elementAt(srow, 4)->addWidget(std::make_unique<Wt::WText>(dist.str()));
 
             std::ostringstream rat;
             rat << std::fixed << std::setprecision(1) << r.supplierRating;
-            table->elementAt(row, 5)->addWidget(std::make_unique<Wt::WText>(rat.str()));
-            table->elementAt(row, 6)->addWidget(std::make_unique<Wt::WText>(sc.str()));
+            table->elementAt(srow, 5)->addWidget(std::make_unique<Wt::WText>(rat.str()));
+            table->elementAt(srow, 6)->addWidget(std::make_unique<Wt::WText>(sc.str()));
 
             // Allow manual override
-            auto selectBtn = table->elementAt(row, 7)->addWidget(
+            long long rSupplierId = r.supplierId;
+            double rPrice = r.effectivePrice;
+            auto selectBtn = table->elementAt(srow, 7)->addWidget(
                 std::make_unique<Wt::WPushButton>("Use This"));
             selectBtn->addStyleClass("btn btn-sm btn-success");
-
-            auto supplierProduct = r.supplierProduct;
-            double effPrice = r.effectivePrice;
             selectBtn->clicked().connect([=] {
-                Wt::Dbo::Transaction t2(session_.dbo());
-                auto item = session_.dbo().find<QuoteLineItem>()
-                    .where("id = ?").bind(lineItemId).resultValue();
-                if (item) {
-                    item.modify()->unitPrice = effPrice;
-                    item.modify()->supplier  = supplierProduct->supplier;
-                    item.modify()->computeTotal();
+                QuoteLineItemDTO upd;
+                auto current = provider_.findLineItemById(lineItemId);
+                if (current) {
+                    upd = *current;
+                    upd.unitPrice  = rPrice;
+                    upd.supplierId = rSupplierId;
+                    upd.lineTotal  = upd.quantity * rPrice * (1.0 + upd.markup / 100.0);
+                    provider_.updateLineItem(lineItemId, upd);
                 }
-                t2.commit();
-
                 dialog->accept();
                 refreshLineItems();
                 updateTotals();
             });
 
-            if (row == 1) {
+            if (srow == 1) {
                 for (int col = 0; col < 8; ++col)
-                    table->elementAt(row, col)->addStyleClass("best-source");
+                    table->elementAt(srow, col)->addStyleClass("best-source");
             }
-
-            ++row;
+            ++srow;
         }
 
         auto closeBtn = dialog->footer()->addWidget(
@@ -630,10 +551,7 @@ void QuoteBuilderView::runSourcing(long long lineItemId)
         closeBtn->addStyleClass("btn btn-primary");
         closeBtn->clicked().connect(dialog, &Wt::WDialog::accept);
 
-        t.commit();
         dialog->show();
-    } else {
-        t.commit();
     }
 
     refreshLineItems();
@@ -644,41 +562,37 @@ void QuoteBuilderView::runSourcingForAll()
 {
     if (currentQuoteId_ < 0) return;
 
-    Wt::Dbo::Transaction t(session_.dbo());
-
-    auto quote = session_.dbo().find<Quote>()
-        .where("id = ?").bind(currentQuoteId_).resultValue();
-    if (!quote) return;
-
     // Determine job site location
     double jobLat = 30.267, jobLon = -97.743;
-    if (quote->client && quote->client->latitude != 0.0) {
-        jobLat = quote->client->latitude;
-        jobLon = quote->client->longitude;
-    }
-
-    SourcingEngine engine(session_.dbo());
-    int sourced = 0;
-
-    auto lineItems = session_.dbo().find<QuoteLineItem>()
-        .where("quote_id = ?").bind(currentQuoteId_).resultList();
-
-    for (auto& li : lineItems) {
-        if (!li->product) continue;
-
-        auto results = engine.findBestSources(
-            li->product.id(), li->quantity, jobLat, jobLon);
-
-        if (!results.empty()) {
-            auto& best = results[0];
-            li.modify()->unitPrice = best.effectivePrice;
-            li.modify()->supplier  = best.supplierProduct->supplier;
-            li.modify()->computeTotal();
-            ++sourced;
+    auto quote = provider_.findQuoteById(currentQuoteId_);
+    if (quote && quote->clientId > 0) {
+        auto client = provider_.findClientById(quote->clientId);
+        if (client && client->latitude != 0.0) {
+            jobLat = client->latitude;
+            jobLon = client->longitude;
         }
     }
 
-    t.commit();
+    SourcingEngine engine(provider_);
+    int sourced = 0;
+
+    auto lineItems = provider_.findLineItemsByQuoteId(currentQuoteId_);
+
+    for (auto& li : lineItems) {
+        if (li.productId <= 0) continue;
+
+        auto results = engine.findBestSources(li.productId, li.quantity, jobLat, jobLon);
+
+        if (!results.empty()) {
+            auto& best = results[0];
+            QuoteLineItemDTO update = li;
+            update.unitPrice  = best.effectivePrice;
+            update.supplierId = best.supplierId;
+            update.lineTotal  = li.quantity * best.effectivePrice * (1.0 + li.markup / 100.0);
+            provider_.updateLineItem(li.id, update);
+            ++sourced;
+        }
+    }
 
     refreshLineItems();
     updateTotals();
@@ -697,14 +611,11 @@ void QuoteBuilderView::updateTotals()
 {
     if (currentQuoteId_ < 0) return;
 
-    Wt::Dbo::Transaction t(session_.dbo());
+    auto lineItems = provider_.findLineItemsByQuoteId(currentQuoteId_);
 
     double subtotal = 0;
-    auto lineItems = session_.dbo().find<QuoteLineItem>()
-        .where("quote_id = ?").bind(currentQuoteId_).resultList();
-    for (auto& li : lineItems) {
-        subtotal += li->lineTotal;
-    }
+    for (auto& li : lineItems)
+        subtotal += li.lineTotal;
 
     double taxRate = taxRateSpin_->value();
     double tax = subtotal * taxRate / 100.0;
@@ -719,6 +630,4 @@ void QuoteBuilderView::updateTotals()
     subtotalText_->setText(ss.str());
     taxText_->setText(ts.str());
     totalText_->setText(gs.str());
-
-    t.commit();
 }

@@ -1,13 +1,10 @@
 #include "engine/SourcingEngine.h"
-#include "models/Product.h"
-#include "models/Supplier.h"
-#include "models/SupplierProduct.h"
 #include <cmath>
 #include <algorithm>
 #include <limits>
 
-SourcingEngine::SourcingEngine(Wt::Dbo::Session& session)
-    : session_(session)
+SourcingEngine::SourcingEngine(DataProvider& provider)
+    : provider_(provider)
 {
 }
 
@@ -18,43 +15,40 @@ std::vector<SourcingResult> SourcingEngine::findBestSources(
     double jobLon,
     const SourcingWeights& weights)
 {
-    Wt::Dbo::Transaction t(session_);
-
-    auto product = session_.find<Product>().where("id = ?").bind(productId).resultValue();
+    auto product = provider_.findProductById(productId);
     if (!product) return {};
 
     // Gather all supplier offerings for this product
-    std::vector<SourcingResult> results;
+    auto offerings = provider_.findSupplierProductsByProductId(productId);
 
-    auto offerings = session_.find<SupplierProduct>()
-        .where("product_id = ?").bind(productId)
-        .resultList();
+    std::vector<SourcingResult> results;
 
     for (auto& sp : offerings) {
         SourcingResult r;
         r.supplierProduct = sp;
-        r.supplierName    = sp->supplier->name;
-        r.unitPrice       = sp->unitPrice;
-        r.availableQty    = sp->stockQty;
-        r.inStock         = sp->inStock;
-        r.supplierRating  = sp->supplier->rating;
-        r.leadTimeDays    = sp->supplier->leadTimeDays;
+        r.supplierName    = sp.supplierName;
+        r.unitPrice       = sp.unitPrice;
+        r.availableQty    = sp.stockQty;
+        r.inStock         = sp.inStock;
+        r.supplierRating  = sp.supplierRating;
+        r.leadTimeDays    = sp.supplierLeadDays;
+        r.supplierId      = sp.supplierId;
 
         // Check if quantity is achievable
-        r.meetsQty = (sp->stockQty >= quantity) ||
-                     (sp->canBackorder && quantity >= sp->minOrderQty);
+        r.meetsQty = (sp.stockQty >= quantity) ||
+                     (sp.canBackorder && quantity >= sp.minOrderQty);
 
         // Compute effective price with bulk discount
-        if (sp->bulkDiscount > 0 && quantity >= sp->bulkThreshold) {
-            r.effectivePrice = sp->unitPrice * (1.0 - sp->bulkDiscount / 100.0);
+        if (sp.bulkDiscount > 0 && quantity >= sp.bulkThreshold) {
+            r.effectivePrice = sp.unitPrice * (1.0 - sp.bulkDiscount / 100.0);
         } else {
-            r.effectivePrice = sp->unitPrice;
+            r.effectivePrice = sp.unitPrice;
         }
 
         // Compute distance from job site to supplier
         r.distanceMiles = haversineDistance(
             jobLat, jobLon,
-            sp->supplier->latitude, sp->supplier->longitude
+            sp.supplierLat, sp.supplierLon
         );
 
         results.push_back(r);
@@ -85,25 +79,19 @@ std::vector<SourcingResult> SourcingEngine::findBestSources(
 
     // Compute composite score for each result
     for (auto& r : results) {
-        // Price score: lower is better → normalize so lowest gets 0
         double priceScore = normalize(r.effectivePrice, minPrice, maxPrice);
 
-        // Availability score: in-stock and meets quantity = 0 (best), else penalized
         double availScore = 0.0;
         if (!r.meetsQty)    availScore += 0.5;
         if (!r.inStock)     availScore += 0.5;
 
-        // Proximity score: closer is better → normalize distance
         double proxScore = normalize(r.distanceMiles, minDist, maxDist);
 
-        // Quality score: higher rating is better → invert
         double qualScore = 1.0 - normalize(r.supplierRating, minRating, maxRating);
 
-        // Include lead time as part of availability
         double leadScore = normalize(static_cast<double>(r.leadTimeDays), minLead, maxLead);
         availScore = availScore * 0.7 + leadScore * 0.3;
 
-        // Weighted composite (lower is better)
         r.compositeScore = weights.priceWeight     * priceScore
                          + weights.availWeight     * availScore
                          + weights.proximityWeight * proxScore
@@ -112,7 +100,6 @@ std::vector<SourcingResult> SourcingEngine::findBestSources(
 
     // Sort: best (lowest composite) first, but prioritize those that meet qty
     std::sort(results.begin(), results.end(), [](const SourcingResult& a, const SourcingResult& b) {
-        // Suppliers meeting quantity always rank above those that don't
         if (a.meetsQty != b.meetsQty) return a.meetsQty;
         return a.compositeScore < b.compositeScore;
     });

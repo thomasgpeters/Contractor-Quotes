@@ -9,19 +9,16 @@
 #include <Wt/WTextArea.h>
 #include <Wt/WText.h>
 #include <Wt/WPushButton.h>
-#include <Wt/Dbo/ptr.h>
-
-class Session;
-class Quote;
+class DataProvider;
 
 /// Quote builder view – create/edit quotes, add line items, run sourcing
 /// engine to find best suppliers, and compute totals.
 class QuoteBuilderView : public Wt::WContainerWidget {
 public:
-    QuoteBuilderView(Session& session);
+    QuoteBuilderView(DataProvider& provider);
 
 private:
-    Session& session_;
+    DataProvider& provider_;
 
     // Quote list
     Wt::WTable* quoteListTable_ = nullptr;

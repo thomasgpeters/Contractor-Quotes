@@ -1,18 +1,24 @@
 #include "views/DashboardView.h"
-#include "models/Session.h"
-#include "models/Product.h"
-#include "models/Supplier.h"
-#include "models/Client.h"
-#include "models/Quote.h"
-#include "models/QuoteLineItem.h"
+#include "data/DataProvider.h"
 #include <Wt/WText.h>
 #include <Wt/WTable.h>
 #include <Wt/WBreak.h>
 #include <sstream>
 #include <iomanip>
 
-DashboardView::DashboardView(Session& session)
-    : session_(session)
+static const char* statusLabel(int s) {
+    switch (s) {
+        case 0: return "Draft";
+        case 1: return "Sent";
+        case 2: return "Accepted";
+        case 3: return "Rejected";
+        case 4: return "Expired";
+        default: return "?";
+    }
+}
+
+DashboardView::DashboardView(DataProvider& provider)
+    : provider_(provider)
 {
     addStyleClass("dashboard-view");
     buildUI();
@@ -20,20 +26,15 @@ DashboardView::DashboardView(Session& session)
 
 void DashboardView::buildUI()
 {
-    Wt::Dbo::Transaction t(session_.dbo());
+    int productCount  = provider_.getProductCount();
+    int supplierCount = provider_.getSupplierCount();
+    int clientCount   = provider_.getClientCount();
+    int quoteCount    = provider_.getQuoteCount();
 
-    int productCount  = session_.dbo().query<int>("select count(1) from product");
-    int supplierCount = session_.dbo().query<int>("select count(1) from supplier");
-    int clientCount   = session_.dbo().query<int>("select count(1) from client");
-    int quoteCount    = session_.dbo().query<int>("select count(1) from quote");
-
+    auto allQuotes = provider_.findAllQuotes();
     double totalQuoteValue = 0.0;
-    auto quotes = session_.dbo().find<Quote>().resultList();
-    for (const auto& q : quotes) {
-        for (const auto& li : q->lineItems) {
-            totalQuoteValue += li->lineTotal;
-        }
-    }
+    for (auto& q : allQuotes)
+        totalQuoteValue += q.totalAmount;
 
     // Header
     addWidget(std::make_unique<Wt::WText>("<h2>Dashboard</h2>"));
@@ -77,45 +78,23 @@ void DashboardView::buildUI()
         table->elementAt(0, 3)->addWidget(std::make_unique<Wt::WText>("Items"));
         table->elementAt(0, 4)->addWidget(std::make_unique<Wt::WText>("Total"));
 
+        auto recentQuotes = provider_.findRecentQuotes(10);
         int row = 1;
-        auto recentQuotes = session_.dbo().find<Quote>()
-            .orderBy("created_date desc")
-            .limit(10)
-            .resultList();
-
-        for (const auto& q : recentQuotes) {
+        for (auto& q : recentQuotes) {
             table->elementAt(row, 0)->addWidget(
-                std::make_unique<Wt::WText>(q->title));
-
-            std::string clientName = q->client ? q->client->name : "(none)";
+                std::make_unique<Wt::WText>(q.title));
             table->elementAt(row, 1)->addWidget(
-                std::make_unique<Wt::WText>(clientName));
-
-            std::string statusStr;
-            switch (q->status) {
-                case Quote::Status::Draft:    statusStr = "Draft"; break;
-                case Quote::Status::Sent:     statusStr = "Sent"; break;
-                case Quote::Status::Accepted: statusStr = "Accepted"; break;
-                case Quote::Status::Rejected: statusStr = "Rejected"; break;
-                case Quote::Status::Expired:  statusStr = "Expired"; break;
-            }
+                std::make_unique<Wt::WText>(q.clientName.empty() ? "(none)" : q.clientName));
             table->elementAt(row, 2)->addWidget(
-                std::make_unique<Wt::WText>(statusStr));
+                std::make_unique<Wt::WText>(statusLabel(q.status)));
 
-            int itemCount = 0;
-            double total = 0.0;
-            for (const auto& li : q->lineItems) {
-                ++itemCount;
-                total += li->lineTotal;
-            }
             table->elementAt(row, 3)->addWidget(
-                std::make_unique<Wt::WText>(std::to_string(itemCount)));
+                std::make_unique<Wt::WText>(std::to_string(q.lineItemCount)));
 
             std::ostringstream ts;
-            ts << "$" << std::fixed << std::setprecision(2) << total;
+            ts << "$" << std::fixed << std::setprecision(2) << q.totalAmount;
             table->elementAt(row, 4)->addWidget(
                 std::make_unique<Wt::WText>(ts.str()));
-
             ++row;
         }
     } else {
@@ -130,28 +109,12 @@ void DashboardView::buildUI()
     catTable->setHeaderCount(1);
     catTable->elementAt(0, 0)->addWidget(std::make_unique<Wt::WText>("Category"));
     catTable->elementAt(0, 1)->addWidget(std::make_unique<Wt::WText>("Products"));
-    catTable->elementAt(0, 2)->addWidget(std::make_unique<Wt::WText>("Avg. Sources"));
 
-    using CatRow = std::tuple<std::string, int>;
-    auto categories = session_.dbo().query<CatRow>(
-        "select category, count(*) from product group by category order by category"
-    ).resultList();
-
+    auto categories = provider_.getCategoryStats();
     int crow = 1;
-    for (auto& [cat, count] : categories) {
-        catTable->elementAt(crow, 0)->addWidget(std::make_unique<Wt::WText>(cat));
-        catTable->elementAt(crow, 1)->addWidget(std::make_unique<Wt::WText>(std::to_string(count)));
-
-        // Average number of suppliers per product in this category
-        auto avgSources = session_.dbo().query<double>(
-            "select avg(cnt) from (select count(*) as cnt from supplier_product sp "
-            "join product p on sp.product_id = p.id where p.category = ? group by sp.product_id)"
-        ).bind(cat).resultValue();
-        std::ostringstream as;
-        as << std::fixed << std::setprecision(1) << avgSources;
-        catTable->elementAt(crow, 2)->addWidget(std::make_unique<Wt::WText>(as.str()));
+    for (auto& cat : categories) {
+        catTable->elementAt(crow, 0)->addWidget(std::make_unique<Wt::WText>(cat.category));
+        catTable->elementAt(crow, 1)->addWidget(std::make_unique<Wt::WText>(std::to_string(cat.productCount)));
         ++crow;
     }
-
-    t.commit();
 }
