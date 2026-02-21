@@ -58,6 +58,9 @@ private:
     std::string apiKeyHeader_;
     std::string apiKeyValue_;
 
+    /// Resolve denormalized fields (clientName, totalAmount, lineItemCount).
+    void enrichQuotes(std::vector<QuoteDTO>& quotes);
+
     /// Parse the host and port from baseUrl_ for socket connection.
     void parseUrl(std::string& host, std::string& port, std::string& basePath) const;
 

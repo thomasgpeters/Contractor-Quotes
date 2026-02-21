@@ -10,6 +10,8 @@
 #include <stdexcept>
 #include <regex>
 #include <algorithm>
+#include <chrono>
+#include <ctime>
 #include <set>
 #include <map>
 
@@ -540,6 +542,33 @@ static Wt::Json::Object quoteToAttributes(const QuoteDTO& dto) {
     return attr;
 }
 
+void ApiDataProvider::enrichQuotes(std::vector<QuoteDTO>& quotes)
+{
+    if (quotes.empty()) return;
+
+    // Batch-resolve client names
+    auto clients = findAllClients();
+    std::map<long long, std::string> clientNames;
+    for (auto& c : clients)
+        clientNames[c.id] = c.name;
+
+    for (auto& q : quotes) {
+        if (q.clientId > 0) {
+            auto it = clientNames.find(q.clientId);
+            if (it != clientNames.end())
+                q.clientName = it->second;
+        }
+
+        // Compute totals from line items
+        auto items = findLineItemsByQuoteId(q.id);
+        q.lineItemCount = static_cast<int>(items.size());
+        double total = 0;
+        for (auto& li : items)
+            total += li.lineTotal;
+        q.totalAmount = total;
+    }
+}
+
 std::vector<QuoteDTO> ApiDataProvider::findAllQuotes()
 {
     auto json = httpGet("/Quote/?page[limit]=1000&sort=-created_date");
@@ -548,6 +577,7 @@ std::vector<QuoteDTO> ApiDataProvider::findAllQuotes()
     std::vector<QuoteDTO> result;
     for (const auto& v : arr)
         result.push_back(parseQuote(static_cast<const Wt::Json::Object&>(v)));
+    enrichQuotes(result);
     return result;
 }
 
@@ -557,7 +587,12 @@ std::optional<QuoteDTO> ApiDataProvider::findQuoteById(long long id)
         auto json = httpGet("/Quote/" + std::to_string(id) + "/");
         auto obj  = getDataObject(json);
         if (obj.empty()) return std::nullopt;
-        return parseQuote(obj);
+        auto dto = parseQuote(obj);
+
+        // Enrich single quote
+        std::vector<QuoteDTO> v{dto};
+        enrichQuotes(v);
+        return v[0];
     } catch (...) {
         return std::nullopt;
     }
@@ -572,12 +607,24 @@ std::vector<QuoteDTO> ApiDataProvider::findRecentQuotes(int limit)
     std::vector<QuoteDTO> result;
     for (const auto& v : arr)
         result.push_back(parseQuote(static_cast<const Wt::Json::Object&>(v)));
+    enrichQuotes(result);
     return result;
 }
 
 QuoteDTO ApiDataProvider::createQuote(const QuoteDTO& dto)
 {
-    auto body = buildJsonBody("Quote", quoteToAttributes(dto));
+    QuoteDTO toCreate = dto;
+    if (toCreate.createdDate.empty()) {
+        // Ensure created_date is set for new quotes
+        auto now = std::chrono::system_clock::now();
+        auto tt  = std::chrono::system_clock::to_time_t(now);
+        std::tm tm{};
+        gmtime_r(&tt, &tm);
+        char buf[32];
+        std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", &tm);
+        toCreate.createdDate = buf;
+    }
+    auto body = buildJsonBody("Quote", quoteToAttributes(toCreate));
     auto json = httpPost("/Quote/", body);
     auto obj  = getDataObject(json);
     return parseQuote(obj);
