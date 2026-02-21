@@ -287,18 +287,29 @@
 }
 
 /* ----- Form Grid Layouts ----- */
+.form-grid-3,
+.form-grid-2 {
+    margin: 0;
+    padding: 0;
+}
+
 .form-grid-3 {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
 }
 
 .form-grid-2 {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.form-cell {
+    padding: 0;
+    margin: 0;
 }
 
 .form-cell label {
@@ -306,7 +317,7 @@
     font-weight: 500;
     color: #546e7a;
     font-size: 0.85rem;
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.25rem;
 }
 
 .form-cell .form-control {
@@ -337,9 +348,8 @@
 
 /* ----- Quote Builder ----- */
 .quote-editor {
-    margin-top: 1.5rem;
-    padding-top: 1rem;
-    border-top: 2px solid #e0e0e0;
+    margin-top: 0;
+    padding-top: 0;
 }
 
 .totals-box {
