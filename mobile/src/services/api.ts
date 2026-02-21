@@ -590,19 +590,41 @@ export async function deleteLineItem(id: number): Promise<void> {
 // ── Dashboard Aggregates ─────────────────────────────────────
 
 export async function fetchDashboardStats(): Promise<DashboardStats> {
-  const [products, suppliers, clients, quotes] = await Promise.all([
+  const [products, suppliers, clients, quotes, spJson] = await Promise.all([
     fetchProducts(),
     fetchSuppliers(),
     fetchClients(),
     fetchRecentQuotes(5),
+    apiGet('/SupplierProduct/?page[limit]=5000'),
   ]);
 
+  const sps = getDataArray(spJson).map(parseSupplierProduct);
+
+  // Build product-id → category lookup
+  const prodCategory = new Map(products.map((p) => [p.id, p.category]));
+
+  // Count products per category
   const catCounts: Record<string, number> = {};
   for (const p of products) {
     catCounts[p.category] = (catCounts[p.category] || 0) + 1;
   }
+
+  // Count distinct suppliers per category
+  const suppliersByCategory = new Map<string, Set<number>>();
+  for (const sp of sps) {
+    const cat = prodCategory.get(sp.productId);
+    if (cat && sp.supplierId > 0) {
+      if (!suppliersByCategory.has(cat)) suppliersByCategory.set(cat, new Set());
+      suppliersByCategory.get(cat)!.add(sp.supplierId);
+    }
+  }
+
   const categories: CategoryStat[] = Object.entries(catCounts)
-    .map(([category, productCount]) => ({ category, productCount }))
+    .map(([category, productCount]) => ({
+      category,
+      productCount,
+      supplierCount: suppliersByCategory.get(category)?.size ?? 0,
+    }))
     .sort((a, b) => a.category.localeCompare(b.category));
 
   return {

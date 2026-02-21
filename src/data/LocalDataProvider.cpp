@@ -599,6 +599,8 @@ int LocalDataProvider::getQuoteCount()
 std::vector<CategoryStatDTO> LocalDataProvider::getCategoryStats()
 {
     Wt::Dbo::Transaction t(session_.dbo());
+
+    // Product count per category
     using CatRow = std::tuple<std::string, int>;
     auto rows = session_.dbo().query<CatRow>(
         "select category, count(*) from product group by category order by category"
@@ -611,6 +613,26 @@ std::vector<CategoryStatDTO> LocalDataProvider::getCategoryStats()
         s.productCount = std::get<1>(r);
         result.push_back(std::move(s));
     }
+
+    // Distinct supplier count per category via supplier_product join
+    using SupCatRow = std::tuple<std::string, int>;
+    auto supRows = session_.dbo().query<SupCatRow>(
+        "select p.category, count(distinct sp.supplier_id) "
+        "from product p "
+        "join supplier_product sp on sp.product_id = p.id "
+        "group by p.category"
+    ).resultList();
+
+    std::map<std::string, int> supCounts;
+    for (auto& r : supRows)
+        supCounts[std::get<0>(r)] = std::get<1>(r);
+
+    for (auto& s : result) {
+        auto it = supCounts.find(s.category);
+        if (it != supCounts.end())
+            s.supplierCount = it->second;
+    }
+
     t.commit();
     return result;
 }

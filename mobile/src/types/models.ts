@@ -116,6 +116,7 @@ export interface QuoteLineItem {
 export interface CategoryStat {
   category: string;
   productCount: number;
+  supplierCount: number;
 }
 
 export interface DashboardStats {

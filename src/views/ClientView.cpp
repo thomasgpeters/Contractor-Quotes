@@ -27,7 +27,9 @@ void ClientView::buildUI()
     addBtn->addStyleClass("btn btn-primary");
     addBtn->clicked().connect(this, &ClientView::showAddDialog);
 
-    table_ = addWidget(std::make_unique<Wt::WTable>());
+    auto tableCard = addWidget(std::make_unique<Wt::WContainerWidget>());
+    tableCard->addStyleClass("dashboard-card");
+    table_ = tableCard->addWidget(std::make_unique<Wt::WTable>());
     table_->addStyleClass("table table-striped");
 
     refreshTable();
