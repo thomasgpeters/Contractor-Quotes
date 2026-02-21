@@ -6,8 +6,9 @@
 }
 
 :root {
-  --primary: #1a56db;
-  --primary-light: #e1effe;
+  --primary: #1a73e8;
+  --primary-dark: #0d47a1;
+  --primary-light: #e8f0fe;
   --danger: #dc2626;
   --danger-light: #fee2e2;
   --green: #16a34a;
@@ -20,6 +21,23 @@
   --radius: 12px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #5e9cf5;
+    --primary-dark: #1a73e8;
+    --primary-light: #1a2a44;
+    --danger: #f87171;
+    --danger-light: #3b1c1c;
+    --green: #4ade80;
+    --green-light: #1a2e1a;
+    --text: #e5e7eb;
+    --text-secondary: #9ca3af;
+    --bg: #111827;
+    --card-bg: #1f2937;
+    --border: #374151;
+  }
 }
 
 html, body {
@@ -43,7 +61,6 @@ html, body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: calc(70px + var(--safe-bottom));
-  padding-top: var(--safe-top);
 }
 
 /* ── Tab Bar ──────────────────────────────────────────── */
@@ -453,4 +470,39 @@ html, body {
   border-radius: 8px;
   font-size: 0.85rem;
   margin-bottom: 12px;
+}
+
+/* ── App Header ──────────────────────────────────────── */
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  padding-top: calc(10px + var(--safe-top));
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-header-logo {
+  height: 28px;
+  width: auto;
+}
+
+.app-header-logo.logo-dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-header-logo.logo-light {
+    display: none;
+  }
+  .app-header-logo.logo-dark {
+    display: block;
+  }
+}
+
+.app-header-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
 }

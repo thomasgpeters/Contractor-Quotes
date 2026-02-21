@@ -12,6 +12,7 @@
 #include <Wt/WText.h>
 #include <Wt/WLink.h>
 #include <Wt/WCssStyleSheet.h>
+#include <Wt/WImage.h>
 
 ContractorApp::ContractorApp(const Wt::WEnvironment& env, DataProvider& provider)
     : Wt::WApplication(env),

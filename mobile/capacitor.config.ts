@@ -16,6 +16,7 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       style: 'dark',
+      backgroundColor: '#1a73e8',
     },
   },
 };

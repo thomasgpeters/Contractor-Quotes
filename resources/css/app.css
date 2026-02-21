@@ -8,7 +8,7 @@
 }
 
 .main-navbar {
-    background-color: #1a2332 !important;
+    background-color: #0d47a1 !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     padding: 0.5rem 1rem;
 }
@@ -18,6 +18,25 @@
     font-weight: 700;
     font-size: 1.3rem;
     letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.navbar-logo {
+    height: 30px;
+    width: auto;
+    vertical-align: middle;
+}
+
+.main-navbar .navbar-brand::before {
+    content: '';
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    background: url('../images/imagery_logo_white.png') center/contain no-repeat;
+    margin-right: 8px;
+    vertical-align: middle;
 }
 
 .main-menu .nav-link {
@@ -32,8 +51,8 @@
 }
 
 .main-menu .active > .nav-link {
-    color: #4fc3f7 !important;
-    border-bottom: 2px solid #4fc3f7;
+    color: #90caf9 !important;
+    border-bottom: 2px solid #90caf9;
 }
 
 .page-content {
@@ -44,7 +63,7 @@
 
 /* ----- Dashboard ----- */
 .dashboard-view h2 {
-    color: #1a2332;
+    color: #0d47a1;
     font-weight: 700;
     margin-bottom: 0.25rem;
 }
@@ -85,7 +104,7 @@
 .stat-value {
     font-size: 1.75rem;
     font-weight: 700;
-    color: #1a2332;
+    color: #0d47a1;
 }
 
 .stat-label {
@@ -151,12 +170,12 @@
 }
 
 .btn-primary {
-    background-color: #1976d2;
+    background-color: #1a73e8;
     color: #ffffff;
 }
 
 .btn-primary:hover {
-    background-color: #1565c0;
+    background-color: #0d47a1;
 }
 
 .btn-secondary {
@@ -219,9 +238,9 @@
 }
 
 .form-control:focus {
-    border-color: #42a5f5;
+    border-color: #1a73e8;
     outline: none;
-    box-shadow: 0 0 0 3px rgba(66,165,245,0.15);
+    box-shadow: 0 0 0 3px rgba(26,115,232,0.15);
 }
 
 .inline-control {
@@ -244,7 +263,7 @@
 
 .form-group-box legend {
     font-weight: 600;
-    color: #1a2332;
+    color: #0d47a1;
     font-size: 1.05rem;
     padding: 0 0.5rem;
 }
@@ -300,10 +319,10 @@
 .grand-total {
     font-size: 1.4rem;
     font-weight: 700;
-    color: #1a2332;
+    color: #0d47a1;
     margin-top: 0.5rem;
     padding-top: 0.5rem;
-    border-top: 2px solid #1a2332;
+    border-top: 2px solid #0d47a1;
 }
 
 /* ----- Action Buttons ----- */
@@ -338,7 +357,7 @@
 
 /* ----- Section Headers ----- */
 h2 {
-    color: #1a2332;
+    color: #0d47a1;
     font-weight: 700;
     font-size: 1.5rem;
     margin-bottom: 0.5rem;

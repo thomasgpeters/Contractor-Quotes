@@ -11,6 +11,11 @@ const tabs = [
 export default function Layout() {
   return (
     <div className="app-layout">
+      <header className="app-header">
+        <img src="/images/imagery_logo.png" alt="Imagery" className="app-header-logo logo-light" />
+        <img src="/images/imagery_logo_white.png" alt="Imagery" className="app-header-logo logo-dark" />
+        <span className="app-header-title">Contractor Quotes</span>
+      </header>
       <main className="app-main">
         <Outlet />
       </main>
