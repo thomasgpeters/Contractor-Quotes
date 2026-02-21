@@ -59,9 +59,10 @@ void QuoteBuilderView::buildUI()
     backBtn->addStyleClass("btn btn-link back-arrow");
     backBtn->setToolTip("Back to Quotes");
     backBtn->clicked().connect([this] {
+        currentQuoteId_ = -1;
         editorPanel_->hide();
         listPanel_->show();
-        currentQuoteId_ = -1;
+        refreshQuoteList();
     });
 
     editorQuoteId_ = editorToolbar->addWidget(std::make_unique<Wt::WText>("Quote #0"));
