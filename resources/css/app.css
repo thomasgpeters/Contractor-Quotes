@@ -324,6 +324,10 @@
     width: 100%;
 }
 
+.form-group-box > .toolbar {
+    margin-top: 1rem;
+}
+
 @media (max-width: 768px) {
     .form-grid-3 {
         grid-template-columns: 1fr;
