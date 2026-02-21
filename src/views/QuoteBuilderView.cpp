@@ -51,14 +51,21 @@ void QuoteBuilderView::buildUI()
     editorPanel_->hide();
 
     auto editorToolbar = editorPanel_->addWidget(std::make_unique<Wt::WContainerWidget>());
-    editorToolbar->addStyleClass("toolbar");
-    auto backBtn = editorToolbar->addWidget(std::make_unique<Wt::WPushButton>("Back to Quotes"));
-    backBtn->addStyleClass("btn btn-secondary");
+    editorToolbar->addStyleClass("editor-nav");
+
+    auto backBtn = editorToolbar->addWidget(std::make_unique<Wt::WPushButton>());
+    backBtn->setTextFormat(Wt::TextFormat::XHTML);
+    backBtn->setText("&#8592;");
+    backBtn->addStyleClass("btn btn-link back-arrow");
+    backBtn->setToolTip("Back to Quotes");
     backBtn->clicked().connect([this] {
         editorPanel_->hide();
         listPanel_->show();
         currentQuoteId_ = -1;
     });
+
+    editorQuoteId_ = editorToolbar->addWidget(std::make_unique<Wt::WText>("Quote #0"));
+    editorQuoteId_->addStyleClass("editor-quote-id");
 
     auto detailsBox = editorPanel_->addWidget(std::make_unique<Wt::WGroupBox>("Quote Details"));
     detailsBox->addStyleClass("form-group-box");
@@ -239,6 +246,7 @@ void QuoteBuilderView::openQuote(long long quoteId)
     currentQuoteId_ = quoteId;
     listPanel_->hide();
     editorPanel_->show();
+    editorQuoteId_->setText("Quote #" + std::to_string(quoteId));
 
     populateClientCombo();
 
