@@ -40,18 +40,18 @@ void ContractorApp::setupNavigation(Wt::WContainerWidget* root)
     navBar->setResponsive(true);
     navBar->addStyleClass("main-navbar");
 
+    stack_ = root->addWidget(std::make_unique<Wt::WStackedWidget>());
+    stack_->addStyleClass("page-content");
+
+    menu_ = navBar->addMenu(std::make_unique<Wt::WMenu>(stack_));
+    menu_->addStyleClass("main-menu");
+
     auto aboutBtn = std::make_unique<Wt::WPushButton>();
     aboutBtn->setText(Wt::WString::fromUTF8("\xe2\x93\x98"));
     aboutBtn->addStyleClass("btn btn-link about-btn");
     aboutBtn->setToolTip("About");
     aboutBtn->clicked().connect([this] { showAboutDialog(); });
     navBar->addWidget(std::move(aboutBtn), Wt::AlignmentFlag::Right);
-
-    stack_ = root->addWidget(std::make_unique<Wt::WStackedWidget>());
-    stack_->addStyleClass("page-content");
-
-    menu_ = navBar->addMenu(std::make_unique<Wt::WMenu>(stack_));
-    menu_->addStyleClass("main-menu");
 
     auto dashItem = menu_->addItem("Dashboard",
         std::make_unique<DashboardView>(provider_));
