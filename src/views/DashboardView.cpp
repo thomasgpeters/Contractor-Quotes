@@ -65,11 +65,13 @@ void DashboardView::buildUI()
     oss << "$" << std::fixed << std::setprecision(2) << totalQuoteValue;
     addCard("Total Quote Value", oss.str(), "&#128176;", "card-value");
 
-    // Recent quotes table
-    addWidget(std::make_unique<Wt::WText>("<h3>Recent Quotes</h3>"));
+    // Recent quotes card
+    auto quotesCard = addWidget(std::make_unique<Wt::WContainerWidget>());
+    quotesCard->addStyleClass("dashboard-card");
+    quotesCard->addWidget(std::make_unique<Wt::WText>("<h3>Recent Quotes</h3>"));
 
     if (quoteCount > 0) {
-        auto table = addWidget(std::make_unique<Wt::WTable>());
+        auto table = quotesCard->addWidget(std::make_unique<Wt::WTable>());
         table->addStyleClass("table table-striped");
         table->setHeaderCount(1);
         table->elementAt(0, 0)->addWidget(std::make_unique<Wt::WText>("Title"));
@@ -98,23 +100,27 @@ void DashboardView::buildUI()
             ++row;
         }
     } else {
-        addWidget(std::make_unique<Wt::WText>(
+        quotesCard->addWidget(std::make_unique<Wt::WText>(
             "<p class='text-muted'>No quotes yet. Go to the Quote Builder to create one.</p>"));
     }
 
-    // Product categories summary
-    addWidget(std::make_unique<Wt::WText>("<h3>Product Categories</h3>"));
-    auto catTable = addWidget(std::make_unique<Wt::WTable>());
+    // Product categories card
+    auto catCard = addWidget(std::make_unique<Wt::WContainerWidget>());
+    catCard->addStyleClass("dashboard-card");
+    catCard->addWidget(std::make_unique<Wt::WText>("<h3>Product Categories</h3>"));
+    auto catTable = catCard->addWidget(std::make_unique<Wt::WTable>());
     catTable->addStyleClass("table table-striped");
     catTable->setHeaderCount(1);
     catTable->elementAt(0, 0)->addWidget(std::make_unique<Wt::WText>("Category"));
     catTable->elementAt(0, 1)->addWidget(std::make_unique<Wt::WText>("Products"));
+    catTable->elementAt(0, 2)->addWidget(std::make_unique<Wt::WText>("Suppliers"));
 
     auto categories = provider_.getCategoryStats();
     int crow = 1;
     for (auto& cat : categories) {
         catTable->elementAt(crow, 0)->addWidget(std::make_unique<Wt::WText>(cat.category));
         catTable->elementAt(crow, 1)->addWidget(std::make_unique<Wt::WText>(std::to_string(cat.productCount)));
+        catTable->elementAt(crow, 2)->addWidget(std::make_unique<Wt::WText>(std::to_string(cat.supplierCount)));
         ++crow;
     }
 }

@@ -44,31 +44,52 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <h2 className="section-title">Categories</h2>
-      <div className="card-list">
-        {stats.categories.map((cat) => (
-          <div key={cat.category} className="list-item">
-            <span className="list-item-title">{cat.category}</span>
-            <span className="badge">{cat.productCount}</span>
-          </div>
-        ))}
+      <div className="dashboard-card">
+        <h2 className="section-title">Product Categories</h2>
+        <table className="dashboard-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Products</th>
+              <th>Suppliers</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stats.categories.map((cat) => (
+              <tr key={cat.category}>
+                <td>{cat.category}</td>
+                <td>{cat.productCount}</td>
+                <td>{cat.supplierCount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      <h2 className="section-title">Recent Quotes</h2>
-      <div className="card-list">
-        {stats.recentQuotes.length === 0 && (
+      <div className="dashboard-card">
+        <h2 className="section-title">Recent Quotes</h2>
+        {stats.recentQuotes.length === 0 ? (
           <div className="empty-state">No quotes yet</div>
+        ) : (
+          <table className="dashboard-table">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats.recentQuotes.map((q) => (
+                <tr key={q.id} onClick={() => navigate('/quotes')} style={{ cursor: 'pointer' }}>
+                  <td>{q.title || `Quote #${q.id}`}</td>
+                  <td>{QuoteStatusLabels[q.status] || 'Draft'}</td>
+                  <td>{q.createdDate?.split('T')[0] || ''}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
-        {stats.recentQuotes.map((q) => (
-          <div key={q.id} className="list-item" onClick={() => navigate('/quotes')}>
-            <div>
-              <div className="list-item-title">{q.title || `Quote #${q.id}`}</div>
-              <div className="list-item-subtitle">
-                {QuoteStatusLabels[q.status] || 'Draft'} &middot; {q.createdDate?.split('T')[0] || ''}
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );

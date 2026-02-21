@@ -43,7 +43,9 @@ void QuoteBuilderView::buildUI()
     newBtn->addStyleClass("btn btn-primary");
     newBtn->clicked().connect(this, &QuoteBuilderView::createNewQuote);
 
-    quoteListTable_ = listPanel_->addWidget(std::make_unique<Wt::WTable>());
+    auto listCard = listPanel_->addWidget(std::make_unique<Wt::WContainerWidget>());
+    listCard->addStyleClass("dashboard-card");
+    quoteListTable_ = listCard->addWidget(std::make_unique<Wt::WTable>());
     quoteListTable_->addStyleClass("table table-striped");
 
     editorPanel_ = addWidget(std::make_unique<Wt::WContainerWidget>());

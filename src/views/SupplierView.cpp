@@ -20,7 +20,9 @@ void SupplierView::buildUI()
     addWidget(std::make_unique<Wt::WText>(
         "<p>View all registered building material suppliers and their inventory.</p>"));
 
-    table_ = addWidget(std::make_unique<Wt::WTable>());
+    auto tableCard = addWidget(std::make_unique<Wt::WContainerWidget>());
+    tableCard->addStyleClass("dashboard-card");
+    table_ = tableCard->addWidget(std::make_unique<Wt::WTable>());
     table_->addStyleClass("table table-striped");
 
     refreshTable();

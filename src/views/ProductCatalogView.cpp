@@ -43,7 +43,9 @@ void ProductCatalogView::buildUI()
     searchBox_->addStyleClass("form-control inline-control");
     searchBox_->textInput().connect(this, &ProductCatalogView::refreshTable);
 
-    table_ = addWidget(std::make_unique<Wt::WTable>());
+    auto tableCard = addWidget(std::make_unique<Wt::WContainerWidget>());
+    tableCard->addStyleClass("dashboard-card");
+    table_ = tableCard->addWidget(std::make_unique<Wt::WTable>());
     table_->addStyleClass("table table-striped");
 
     refreshTable();

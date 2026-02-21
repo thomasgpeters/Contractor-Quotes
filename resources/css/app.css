@@ -124,6 +124,25 @@
 .card-quotes    { border-top: 3px solid #ffa726; }
 .card-value     { border-top: 3px solid #26c6da; }
 
+/* ----- Dashboard Table Cards ----- */
+.dashboard-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.dashboard-card h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.dashboard-card .table {
+    box-shadow: none;
+    margin-bottom: 0;
+}
+
 /* ----- Tables ----- */
 .table {
     background: #ffffff;

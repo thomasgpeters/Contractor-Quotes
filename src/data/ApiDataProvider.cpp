@@ -937,17 +937,40 @@ int ApiDataProvider::getQuoteCount()
 
 std::vector<CategoryStatDTO> ApiDataProvider::getCategoryStats()
 {
-    // No aggregate endpoint; compute client-side from products
+    // No aggregate endpoint; compute client-side from products + supplier_products
     auto products = findAllProducts();
-    std::map<std::string, int> counts;
-    for (auto& p : products)
-        counts[p.category]++;
+    auto spJson = httpGet("/SupplierProduct/?page[limit]=5000");
+    auto spArr  = getDataArray(spJson);
+
+    // Parse supplier-product records
+    std::vector<SupplierProductDTO> sps;
+    for (const auto& v : spArr)
+        sps.push_back(parseSupplierProduct(static_cast<const Wt::Json::Object&>(v)));
+
+    // Build product-id → category lookup
+    std::map<long long, std::string> prodCategory;
+    std::map<std::string, int> productCounts;
+    for (auto& p : products) {
+        prodCategory[p.id] = p.category;
+        productCounts[p.category]++;
+    }
+
+    // Count distinct suppliers per category
+    std::map<std::string, std::set<long long>> suppliersByCategory;
+    for (auto& sp : sps) {
+        auto catIt = prodCategory.find(sp.productId);
+        if (catIt != prodCategory.end() && sp.supplierId > 0)
+            suppliersByCategory[catIt->second].insert(sp.supplierId);
+    }
 
     std::vector<CategoryStatDTO> result;
-    for (auto& [cat, cnt] : counts) {
+    for (auto& [cat, cnt] : productCounts) {
         CategoryStatDTO s;
-        s.category     = cat;
-        s.productCount = cnt;
+        s.category      = cat;
+        s.productCount  = cnt;
+        auto it = suppliersByCategory.find(cat);
+        if (it != suppliersByCategory.end())
+            s.supplierCount = static_cast<int>(it->second.size());
         result.push_back(std::move(s));
     }
     return result;

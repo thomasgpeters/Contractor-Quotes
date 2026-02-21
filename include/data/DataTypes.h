@@ -117,5 +117,5 @@ struct QuoteLineItemDTO {
 struct CategoryStatDTO {
     std::string category;
     int         productCount = 0;
-    double      avgSupplierCount = 0.0;
+    int         supplierCount = 0; // distinct suppliers sourcing products in this category
 };

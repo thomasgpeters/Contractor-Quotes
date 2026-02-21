@@ -591,3 +591,48 @@ html, body {
 .about-modal a:hover {
   text-decoration: underline;
 }
+
+/* ── Dashboard Table Cards ────────────────────────────── */
+.dashboard-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.dashboard-card .section-title {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.dashboard-table thead th {
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 6px 10px;
+  border-bottom: 2px solid var(--border);
+}
+
+.dashboard-table tbody td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.dashboard-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.dashboard-table tbody tr:active {
+  background: var(--bg);
+}
