@@ -338,6 +338,58 @@
     }
 }
 
+/* ----- About Button & Dialog ----- */
+.about-btn {
+    color: #b0bec5 !important;
+    font-size: 1.1rem;
+    padding: 0.4rem 0.6rem;
+    text-decoration: none;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.about-btn:hover {
+    opacity: 1;
+    color: #ffffff !important;
+}
+
+.about-dialog {
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.about-logo img {
+    max-width: 200px;
+    height: auto;
+    margin-bottom: 1rem;
+}
+
+.about-dialog h3 {
+    margin: 0 0 0.75rem;
+    text-align: center;
+}
+
+.about-dialog p {
+    text-align: center;
+    margin: 0.5rem 0;
+}
+
+.about-copy {
+    color: #90a4ae;
+    font-size: 0.85rem;
+    margin-top: 1rem !important;
+}
+
+.about-dialog a {
+    color: #1a73e8;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.about-dialog a:hover {
+    text-decoration: underline;
+}
+
 /* ----- Dialog ----- */
 .dialog-content {
     padding: 1rem;

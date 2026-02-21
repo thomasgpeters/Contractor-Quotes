@@ -502,7 +502,92 @@ html, body {
 }
 
 .app-header-title {
+  flex: 1;
   font-size: 1rem;
   font-weight: 600;
   color: var(--text);
+}
+
+.about-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  padding: 4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+}
+
+/* ── About Modal ─────────────────────────────────────── */
+.about-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 24px;
+}
+
+.about-modal {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.about-modal-logo {
+  max-width: 160px;
+  height: auto;
+  margin-bottom: 12px;
+}
+
+.about-modal-logo.logo-dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .about-modal-logo.logo-light {
+    display: none;
+  }
+  .about-modal-logo.logo-dark {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.about-modal h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.about-modal p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.about-copy {
+  font-size: 0.8rem !important;
+  margin-top: 10px !important;
+}
+
+.about-modal a {
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.about-modal a:hover {
+  text-decoration: underline;
 }
