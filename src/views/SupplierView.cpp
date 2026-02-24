@@ -11,7 +11,14 @@ SupplierView::SupplierView(DataProvider& provider)
     : provider_(provider)
 {
     addStyleClass("supplier-view");
-    buildUI();
+    try {
+        buildUI();
+    } catch (const std::exception& e) {
+        addWidget(std::make_unique<Wt::WText>("<h2>Supplier Directory</h2>"));
+        addWidget(std::make_unique<Wt::WText>(
+            "<div class='alert alert-danger'>Unable to load suppliers: " +
+            std::string(e.what()) + "</div>"));
+    }
 }
 
 void SupplierView::buildUI()
