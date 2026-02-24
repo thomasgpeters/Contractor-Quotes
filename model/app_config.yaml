@@ -4,7 +4,7 @@
 #   "api"   – REST calls to an ApiLogicServer instance (default)
 #   "local" – direct database connection (SQLite or PostgreSQL)
 
-architecture: api
+architecture: local
 
 # ── Local database settings (used when architecture: local) ────
 local:

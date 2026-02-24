@@ -13,7 +13,14 @@ ClientView::ClientView(DataProvider& provider)
     : provider_(provider)
 {
     addStyleClass("client-view");
-    buildUI();
+    try {
+        buildUI();
+    } catch (const std::exception& e) {
+        addWidget(std::make_unique<Wt::WText>("<h2>Client Management</h2>"));
+        addWidget(std::make_unique<Wt::WText>(
+            "<div class='alert alert-danger'>Unable to load clients: " +
+            std::string(e.what()) + "</div>"));
+    }
 }
 
 void ClientView::buildUI()

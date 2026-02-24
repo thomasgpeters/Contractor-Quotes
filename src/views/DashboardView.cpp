@@ -21,7 +21,14 @@ DashboardView::DashboardView(DataProvider& provider)
     : provider_(provider)
 {
     addStyleClass("dashboard-view");
-    buildUI();
+    try {
+        buildUI();
+    } catch (const std::exception& e) {
+        addWidget(std::make_unique<Wt::WText>("<h2>Dashboard</h2>"));
+        addWidget(std::make_unique<Wt::WText>(
+            "<div class='alert alert-danger'>Unable to load dashboard: " +
+            std::string(e.what()) + "</div>"));
+    }
 }
 
 void DashboardView::buildUI()

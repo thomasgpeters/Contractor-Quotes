@@ -14,7 +14,14 @@ ProductCatalogView::ProductCatalogView(DataProvider& provider)
     : provider_(provider)
 {
     addStyleClass("product-catalog-view");
-    buildUI();
+    try {
+        buildUI();
+    } catch (const std::exception& e) {
+        addWidget(std::make_unique<Wt::WText>("<h2>Product Catalog</h2>"));
+        addWidget(std::make_unique<Wt::WText>(
+            "<div class='alert alert-danger'>Unable to load products: " +
+            std::string(e.what()) + "</div>"));
+    }
 }
 
 void ProductCatalogView::buildUI()
