@@ -34,10 +34,10 @@ The application was built as a C++ web app using the Wt (Witty) framework with B
 Created standalone SQL files to support external database provisioning (for ApiLogicServer and PostgreSQL deployments).
 
 ### Files Created
-- `database/schema.sql` - SQLite DDL for all 6 tables
-- `database/schema_pg.sql` - PostgreSQL DDL (SERIAL, BOOLEAN, TIMESTAMP types)
-- `database/seed_data.sql` - SQLite INSERT statements reproducing the C++ seeding algorithm
-- `database/seed_data_pg.sql` - PostgreSQL seed data with TRUE/FALSE booleans and sequence resets
+- `database/schema.sql` - PostgreSQL DDL (SERIAL, BOOLEAN, TIMESTAMP types) — default for Docker/VCP
+- `database/schema_sqlite.sql` - SQLite DDL for all 6 tables
+- `database/seed_data.sql` - PostgreSQL seed data with TRUE/FALSE booleans and sequence resets — default for Docker/VCP
+- `database/seed_data_sqlite.sql` - SQLite INSERT statements reproducing the C++ seeding algorithm
 - `database/generate_seed.py` - Python script that reproduces the deterministic supplier-product pricing algorithm from C++
 
 ### Validation
