@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate seed_data.sql (SQLite) and seed_data_pg.sql (PostgreSQL)
+Generate seed_data.sql (PostgreSQL, default) and seed_data_sqlite.sql (SQLite)
 for the Contractor Quotes & Sourcing application.
 
 The supplier_product rows use the same deterministic algorithm as
@@ -243,8 +243,8 @@ if __name__ == "__main__":
     import os
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    sqlite_path = os.path.join(script_dir, "seed_data.sql")
-    pg_path     = os.path.join(script_dir, "seed_data_pg.sql")
+    sqlite_path = os.path.join(script_dir, "seed_data_sqlite.sql")
+    pg_path     = os.path.join(script_dir, "seed_data.sql")
 
     with open(sqlite_path, "w") as f:
         f.write(generate_sqlite_seed())

@@ -143,10 +143,10 @@ Contractor-Quotes/
 │   ├── app_config.yaml          # Runtime configuration
 │   └── app_model.yaml           # ApiLogicServer entity model
 ├── database/
-│   ├── schema.sql               # SQLite DDL
-│   ├── schema_pg.sql            # PostgreSQL DDL
-│   ├── seed_data.sql            # SQLite seed data
-│   └── seed_data_pg.sql         # PostgreSQL seed data
+│   ├── schema.sql               # PostgreSQL DDL (default)
+│   ├── schema_sqlite.sql        # SQLite DDL
+│   ├── seed_data.sql            # PostgreSQL seed data (default)
+│   └── seed_data_sqlite.sql     # SQLite seed data
 ├── mobile/                      # React + Capacitor mobile app
 │   ├── src/
 │   │   ├── types/models.ts      # TypeScript interfaces (mirrors C++ DTOs)
